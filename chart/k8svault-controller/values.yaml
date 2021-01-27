@@ -1,0 +1,140 @@
+affinity: {}
+
+annotations: {}
+
+extraArgs:
+
+fullnameOverride: ""
+
+image:
+  pullPolicy: IfNotPresent
+  repository: nexus.doodle.com:5000/devops/k8svault-controller
+  tag: 0.0.0
+
+imagePullSecrets: []
+
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: metrics
+  initialDelaySeconds: 10
+
+# Name of an externally managed configmap (in the same namespace) containing the mongodb-query-exporter yaml config
+# If this is provided, the value config is ignored. Note the config needs a key named `config.yaml` which contains the query exporters config.
+existingConfig:
+  name: ""
+
+# Name of an externally managed secret (in the same namespace) containing as list of MongoDB envs (connectin URI)
+# If this is provided, the value mongodb is ignored.
+existingSecret:
+  name: ""
+
+nameOverride: ""
+
+nodeSelector: {}
+
+# A list of secrets and their paths to mount inside the pod
+# This is useful for mounting certificates for security
+secretMounts: []
+#  - name: mongodb-certs
+#    secretName: mongodb-certs
+#    path: /ssl
+
+#Add additional containers (sidecars)
+extraContainers:
+
+podAnnotations: {}
+#  prometheus.io/scrape: "true"
+#  prometheus.io/port: "metrics"
+
+port: "9412"
+
+# Change the metrics path
+metricsPath: /metrics
+
+priorityClassName: ""
+
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: metrics
+  initialDelaySeconds: 10
+
+replicas: 1
+
+resources: {}
+# limits:
+#   cpu: 250m
+#   memory: 192Mi
+# requests:
+#   cpu: 100m
+#   memory: 128Mi
+
+# Extra environment variables that will be passed into the exporter pod
+env: {}
+
+## The name of a secret in the same kubernetes namespace which contain values to be added to the environment
+## This can be useful for auth tokens, etc
+envFromSecret: ""
+
+## A list of environment variables from secret refs that will be passed into the exporter pod
+## example:
+## extraEnvSecrets:
+##   MY_ENV:
+##     secret: my-secret
+##     key: password
+extraEnvSecrets: {}
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: ["all"]
+  readOnlyRootFilesystem: true
+  runAsGroup: 10000
+  runAsNonRoot: true
+  runAsUser: 10000
+
+service:
+  labels: {}
+  annotations: {}
+  port: 9412
+  type: ClusterIP
+
+serviceAccount:
+  create: true
+  # If create is true and name is not set, then a name is generated using the
+  # fullname template.
+  name:
+
+# The controller needs full access to all secrets cluster wide.
+# Hower you might disable the cluster rule and manually add fine graded rules.
+clusterRBAC:
+  enabled: true
+
+# Creates a PodSecurityPolicy and the role/rolebinding
+# allowing the serviceaccount to use it
+podSecurityPolicy:
+  enabled: true
+
+# Prometheus operator ServiceMonitor
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  scrapeTimeout: 10s
+  namespace:
+  additionalLabels: {}
+  targetLabels: []
+  metricRelabelings: []
+  sampleLimit: 0
+
+prometheusRule:
+  ## If true, a PrometheusRule CRD is created for a prometheus operator
+  ## https://github.com/coreos/prometheus-operator
+  ##
+  ## The rules will be processed as Helm template, allowing to set variables in them.
+  enabled: false
+  #  namespace: monitoring
+  labels: {}
+  rules: []
+
+tolerations: []

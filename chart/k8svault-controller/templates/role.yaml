@@ -1,0 +1,42 @@
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ template "k8svault-controller.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "k8svault-controller.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    helm.sh/chart: {{ include "k8svault-controller.chart" . }}
+  annotations:
+    {{- toYaml .Values.annotations | nindent 4 }}
+rules:
+{{- if .Values.podSecurityPolicy.enabled -}}
+  - apiGroups: ['extensions']
+    resources: ['podsecuritypolicies']
+    verbs:     ['use']
+    resourceNames:
+    - {{ template "k8svault-controller.fullname" . }}
+{{- end }}
+  # leader election
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - create
+      - delete
+      - get
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - delete
+      - get
+  - apiGroups:
+      - monitoring.coreos.com
+    resources:
+      - servicemonitors
+    verbs:
+      - "get"
+      - "create"
