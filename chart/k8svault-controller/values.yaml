@@ -19,16 +19,6 @@ livenessProbe:
     port: metrics
   initialDelaySeconds: 10
 
-# Name of an externally managed configmap (in the same namespace) containing the mongodb-query-exporter yaml config
-# If this is provided, the value config is ignored. Note the config needs a key named `config.yaml` which contains the query exporters config.
-existingConfig:
-  name: ""
-
-# Name of an externally managed secret (in the same namespace) containing as list of MongoDB envs (connectin URI)
-# If this is provided, the value mongodb is ignored.
-existingSecret:
-  name: ""
-
 nameOverride: ""
 
 nodeSelector: {}
@@ -36,9 +26,9 @@ nodeSelector: {}
 # A list of secrets and their paths to mount inside the pod
 # This is useful for mounting certificates for security
 secretMounts: []
-#  - name: mongodb-certs
-#    secretName: mongodb-certs
-#    path: /ssl
+#  - name: secret
+#    secretName: secret
+#    path: /secrets
 
 #Add additional containers (sidecars)
 extraContainers:
