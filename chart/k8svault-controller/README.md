@@ -1,4 +1,4 @@
-# Prometheus MongoDB Exporter
+# k8svault controller helm chart
 
 Installs the [k8svault-controller](https://github.com/DoodleScheduling/k8svault-controller).
 
