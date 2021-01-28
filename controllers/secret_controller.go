@@ -55,7 +55,11 @@ func (r *SecretReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// Fetch the Secret instance
 	instance := &corev1.Secret{}
-	err := r.Client.Get(context.TODO(), req.NamespacedName, instance)
+
+	// Operate on a copy
+	desired := instance.DeepCopy()
+
+	err := r.Client.Get(context.TODO(), req.NamespacedName, desired)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -67,7 +71,6 @@ func (r *SecretReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	desired := instance.DeepCopy()
 	if _, ok := desired.Annotations[infrav1beta1.AnnotationPath]; ok {
 		m, err := mapFromSecret(desired)
 

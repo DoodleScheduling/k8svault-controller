@@ -37,7 +37,7 @@ podAnnotations: {}
 #  prometheus.io/scrape: "true"
 #  prometheus.io/port: "metrics"
 
-port: "9412"
+port: "9556"
 
 # Change the metrics path
 metricsPath: /metrics
@@ -46,7 +46,7 @@ priorityClassName: ""
 
 readinessProbe:
   httpGet:
-    path: /healthz
+    path: /readyz
     port: metrics
   initialDelaySeconds: 10
 
@@ -87,7 +87,7 @@ securityContext:
 service:
   labels: {}
   annotations: {}
-  port: 9412
+  port: 9556
   type: ClusterIP
 
 serviceAccount:

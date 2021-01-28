@@ -3,11 +3,11 @@ package controllers
 import (
 	"encoding/base64"
 	"errors"
-	"os"
 
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/vault/api"
 	vaultapi "github.com/hashicorp/vault/api"
+	"github.com/spf13/viper"
 	corev1 "k8s.io/api/core/v1"
 
 	infrav1beta1 "github.com/DoodleScheduling/k8svault-controller/pkg/apis/infra.doodle.com/v1beta1"
@@ -26,6 +26,17 @@ type Vault struct {
 	l logr.Logger
 }
 
+func tlsFromViper() *vaultapi.TLSConfig {
+	return &vaultapi.TLSConfig{
+		CACert:        viper.GetString("tls-cacert"),
+		CAPath:        viper.GetString("tls-capath"),
+		ClientCert:    viper.GetString("tls-client-cert"),
+		ClientKey:     viper.GetString("tls-client-key"),
+		TLSServerName: viper.GetString("tls-server-name"),
+		Insecure:      viper.GetBool("tls-insecure"),
+	}
+}
+
 // FromMapping creates a vault client from Kubernetes to Vault mapping
 // If the mapping holds no vault address it will fallback to the env VAULT_ADDRESS
 func FromMapping(m *infrav1beta1.Mapping) (*Vault, error) {
@@ -34,12 +45,13 @@ func FromMapping(m *infrav1beta1.Mapping) (*Vault, error) {
 	switch {
 	case m.Vault != "":
 		c.Address = m.Vault
-	case os.Getenv(vaultapi.EnvVaultAddress) != "":
-		c.Address = os.Getenv(vaultapi.EnvVaultAddress)
+	case viper.GetString("vault-addr") != "":
+		c.Address = viper.GetString("vault-addr")
 	default:
 		return nil, ErrVaultAddrNotFound
 	}
 
+	c.ConfigureTLS(m.TLSConfig)
 	client, err := api.NewClient(c)
 	if err != nil {
 		return nil, err

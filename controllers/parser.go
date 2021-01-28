@@ -18,6 +18,7 @@ func mapFromSecret(secret *corev1.Secret) (*infrav1beta1.Mapping, error) {
 	mapVault(m, secret)
 	mapPath(m, secret)
 	mapForce(m, secret)
+	mapTLSConfig(m, secret)
 
 	return m, nil
 }
@@ -65,6 +66,32 @@ func mapForce(m *infrav1beta1.Mapping, secret *corev1.Secret) {
 		v = strings.ToLower(v)
 		if v == "1" || v == "true" || v == "yes" {
 			m.Force = true
+		}
+	}
+}
+
+func mapTLSConfig(m *infrav1beta1.Mapping, secret *corev1.Secret) {
+	c := tlsFromViper()
+	m.TLSConfig = c
+
+	if v, ok := secret.Annotations[infrav1beta1.AnnotationTLSCACert]; ok {
+		c.CACert = v
+	}
+	if v, ok := secret.Annotations[infrav1beta1.AnnotationTLSCAPath]; ok {
+		c.CAPath = v
+	}
+	if v, ok := secret.Annotations[infrav1beta1.AnnotationTLSClientCert]; ok {
+		c.ClientCert = v
+	}
+	if v, ok := secret.Annotations[infrav1beta1.AnnotationTLSClientKey]; ok {
+		c.ClientKey = v
+	}
+	if v, ok := secret.Annotations[infrav1beta1.AnnotationTLSServerName]; ok {
+		c.TLSServerName = v
+	}
+	if v, ok := secret.Annotations[infrav1beta1.AnnotationTLSInsecure]; ok {
+		if v == "1" || v == "true" || v == "yes" {
+			c.Insecure = true
 		}
 	}
 }
