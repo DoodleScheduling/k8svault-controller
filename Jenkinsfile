@@ -57,13 +57,13 @@ podTemplate(label: 'k8svault-controller',
           version = "$major.$minor.$patch$group"
 
           container('docker') {
-            sh 'docker build . -t nexus.doodle.com:5000/devops/k8svault-controller:v$version'
-            sh 'docker push nexus.doodle.com:5000/devops/k8svault-controller:v$version'
+            sh "docker build . -t nexus.doodle.com:5000/devops/k8svault-controller:${env.TAG_NAME}"
+            sh "docker push nexus.doodle.com:5000/devops/k8svault-controller:v${env.TAG_NAME}"
           }
 
           container('helm') {
-            bumpChartVersion("v${version}")
-            bumpImageVersion(version)
+            bumpChartVersion(version)
+            bumpImageVersion(env.TAG_NAME)
 
             tgz="k8ssecret-controller-${version}.tgz"
             sh "helm package chart/k8svault-controller"
