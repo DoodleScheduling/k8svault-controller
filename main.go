@@ -52,13 +52,13 @@ var (
 	metricsAddr             = ":9556"
 	enableLeaderElection    = true
 	leaderElectionNamespace string
-	vaultAddress            string
+	/*vaultAddress            string
 	tlsInsecure             bool
 	tlsServerName           string
 	tlsCAPath               string
 	tlsCACert               string
 	tlsClientCert           string
-	tlsClientKey            string
+	tlsClientKey            string*/
 )
 
 func main() {
@@ -68,7 +68,7 @@ func main() {
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.StringVar(&leaderElectionNamespace, "leader-election-namespace", "",
 		"Specify a different leader election namespace. It will use the one where the controller is deployed by default.")
-	flag.StringVar(&vaultAddress, "vault-addr", "",
+	/*flag.StringVar(&vaultAddress, "vault-addr", "",
 		"Fallback vault server if no one was specified in annotations.")
 	flag.BoolVar(&tlsInsecure, "tls-insecure", false,
 		"Allow insecure TLS communication to vault (no certificate validation).")
@@ -81,7 +81,7 @@ func main() {
 	flag.StringVar(&tlsClientCert, "tls-client-cert", "",
 		"The path to the certificate for Vault communication.")
 	flag.StringVar(&tlsClientKey, "tls-client-key", "",
-		"The private key for Vault communication.")
+		"The private key for Vault communication.")*/
 
 	flag.Parse()
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
@@ -126,10 +126,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Create a new vault client registry
+	logger := ctrl.Log.WithName("controllers").WithName("Secret")
+	reg := controllers.NewClientRegistry().WithLogger(logger)
+
 	if err = (&controllers.SecretReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Secret"),
-		Scheme: mgr.GetScheme(),
+		Client:         mgr.GetClient(),
+		Log:            logger,
+		Scheme:         mgr.GetScheme(),
+		ClientRegistry: reg,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Secret")
 		os.Exit(1)

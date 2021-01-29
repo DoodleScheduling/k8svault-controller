@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	err "errors"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
@@ -31,17 +30,12 @@ import (
 	infrav1beta1 "github.com/DoodleScheduling/k8svault-controller/pkg/apis/infra.doodle.com/v1beta1"
 )
 
-// Common errors
-var (
-	ErrInvalidFieldMapping = err.New("Invalid field mapping provided")
-	ErrNoVaultMapping      = err.New("No vault mapping available")
-)
-
 // SecretReconciler reconciles a Secret object
 type SecretReconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log            logr.Logger
+	Scheme         *runtime.Scheme
+	ClientRegistry *ClientRegistry
 }
 
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
@@ -81,7 +75,7 @@ func (r *SecretReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 
 		logger.Info("Parsed annotation into mapping", "mapping", m)
-		v, err := FromMapping(m)
+		v, err := r.ClientRegistry.FromMapping(m)
 
 		// Failed to setup vault client, requeue immediately
 		if err != nil {
@@ -89,11 +83,11 @@ func (r *SecretReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			return reconcile.Result{Requeue: true}, err
 		}
 
-		err = v.WithLogger(logger).ApplySecret(desired)
+		err = v.WithLogger(logger).ApplySecret(m, desired)
 
 		// Failed applying state to vault, requeue immediately
 		if err != nil {
-			logger.Error(err, "failed apply desired state to vault")
+			logger.Error(err, "Failed apply desired state to vault")
 			return reconcile.Result{Requeue: true}, err
 		}
 	}

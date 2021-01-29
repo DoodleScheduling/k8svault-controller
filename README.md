@@ -1,7 +1,7 @@
 # k8svault-controller
 
 A controller for Kubernetes with the ability to add k8s native secrets to hashicorp vault.
-It might happen that you need secrets in vault however all existing toolchains are using Kubernetes secrets.
+It might happen that you need secrets in vault however all tooling you are using is based on Kubernetes secrets.
 This controllers makes sure that secrets and fields are available in vault as well.
 
 It does this by adding certain annotations to a Secret resource.
@@ -11,8 +11,10 @@ It does this by adding certain annotations to a Secret resource.
 Annotation | Required | Description |
 -----------| ---------|-------------|
 k8svault-controller.v1beta1.infra.doodle.com/path | Required | The path where to apply values, example: `/secret/prod/myapp` |
+k8svault-controller.v1beta1.infra.doodle.com/role | required | Specify a vault auth role which gets used while authenticating to vault.|
 k8svault-controller.v1beta1.infra.doodle.com/vault | Optional | (If controller knows a default vault)| The vault host, example: `https://vault:8200` |
 k8svault-controller.v1beta1.infra.doodle.com/force | Optional | If true any existing matching fields in vault will be overwritten, example: `true` |
+k8svault-controller.v1beta1.infra.doodle.com/tokenPath | Optional | You may specify a different path to the kubernetes serviceAccount token path. |
 k8svault-controller.v1beta1.infra.doodle.com/fields | Optional | Comma separated list of fields, example: `mysecret`. If not specified all fields are mapped to vault. |
 
 Besides the common annotation there are advanced settings to drive TLS configuration:
@@ -50,7 +52,7 @@ data:
 
 ## Helm chart
 
-Please see chart/k8svault-controller for the helm chart docs.
+Please see [chart/k8svault-controller](https://github.com/DoodleScheduling/k8svault-controller) for the helm chart docs.
 
 ## Vault values
 
@@ -60,6 +62,11 @@ And existing ones with matching fields will only be overwritten if `k8svault-con
 ## Limitations
 
 One secret can only be mapped to a single vault path. It is not possible to map fields to different vault paths right now.
+The controller only supports (for now) vault using the [kubernetes authentication method](https://www.vaultproject.io/docs/auth/kubernetes).
+Also with annotations we can't do proper garbage collection. For example if one changes the vault path, the previously filled one won't be re
+moved.
+
+There might be CRD at some point supporting these cases.
 
 ## Map fields
 

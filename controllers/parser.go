@@ -1,16 +1,57 @@
 package controllers
 
 import (
+	"errors"
 	"strings"
 
+	vaultapi "github.com/hashicorp/vault/api"
 	corev1 "k8s.io/api/core/v1"
 
 	infrav1beta1 "github.com/DoodleScheduling/k8svault-controller/pkg/apis/infra.doodle.com/v1beta1"
 )
 
+// Common errors
+var (
+	ErrInvalidFieldMapping = errors.New("Invalid field mapping provided")
+	ErrNoVaultMapping      = errors.New("No vault mapping available")
+)
+
+// Mapping represents how a secret is mapped to vault. It is a representation
+// of all supported annotations.
+type Mapping struct {
+	Vault     string
+	Path      string
+	Role      string
+	TokenPath string
+	Force     bool
+	TLSConfig *vaultapi.TLSConfig
+	Fields    map[string]string
+}
+
+// IsSame compare mapping against another mapping to tell whether they contain equal values
+// to differentiate clients
+func (m *Mapping) IsSame(comp *Mapping) bool {
+	if m == nil {
+		return false
+	}
+
+	if /**m.TLSConfig == *comp.TLSConfig &&*/ m.Vault == comp.Vault && m.Role == comp.Role && m.TokenPath == comp.TokenPath {
+		return true
+	}
+
+	return false
+}
+
+// NewMapping creates a new mapping
+func NewMapping() *Mapping {
+	return &Mapping{
+		Fields: make(map[string]string),
+	}
+}
+
 // Create a new mapping from a provided k8s Secret
-func mapFromSecret(secret *corev1.Secret) (*infrav1beta1.Mapping, error) {
-	m := infrav1beta1.NewMapping()
+func mapFromSecret(secret *corev1.Secret) (*Mapping, error) {
+	m := NewMapping()
 	if err := mapFields(m, secret); err != nil {
 		return m, err
 	}
@@ -23,7 +64,7 @@ func mapFromSecret(secret *corev1.Secret) (*infrav1beta1.Mapping, error) {
 	return m, nil
 }
 
-func mapFields(m *infrav1beta1.Mapping, secret *corev1.Secret) error {
+func mapFields(m *Mapping, secret *corev1.Secret) error {
 	if v, ok := secret.Annotations[infrav1beta1.AnnotationFields]; ok {
 		fields := strings.Split(v, ",")
 		for _, v := range fields {
@@ -49,19 +90,19 @@ func mapFields(m *infrav1beta1.Mapping, secret *corev1.Secret) error {
 	return nil
 }
 
-func mapVault(m *infrav1beta1.Mapping, secret *corev1.Secret) {
+func mapVault(m *Mapping, secret *corev1.Secret) {
 	if v, ok := secret.Annotations[infrav1beta1.AnnotationVault]; ok {
 		m.Vault = v
 	}
 }
 
-func mapPath(m *infrav1beta1.Mapping, secret *corev1.Secret) {
+func mapPath(m *Mapping, secret *corev1.Secret) {
 	if v, ok := secret.Annotations[infrav1beta1.AnnotationPath]; ok {
 		m.Path = v
 	}
 }
 
-func mapForce(m *infrav1beta1.Mapping, secret *corev1.Secret) {
+func mapForce(m *Mapping, secret *corev1.Secret) {
 	if v, ok := secret.Annotations[infrav1beta1.AnnotationForce]; ok {
 		v = strings.ToLower(v)
 		if v == "1" || v == "true" || v == "yes" {
@@ -70,28 +111,28 @@ func mapForce(m *infrav1beta1.Mapping, secret *corev1.Secret) {
 	}
 }
 
-func mapTLSConfig(m *infrav1beta1.Mapping, secret *corev1.Secret) {
-	c := tlsFromViper()
-	m.TLSConfig = c
+func mapTLSConfig(m *Mapping, secret *corev1.Secret) {
+	//c := tlsFromViper()
+	m.TLSConfig = &vaultapi.TLSConfig{}
 
 	if v, ok := secret.Annotations[infrav1beta1.AnnotationTLSCACert]; ok {
-		c.CACert = v
+		m.TLSConfig.CACert = v
 	}
 	if v, ok := secret.Annotations[infrav1beta1.AnnotationTLSCAPath]; ok {
-		c.CAPath = v
+		m.TLSConfig.CAPath = v
 	}
 	if v, ok := secret.Annotations[infrav1beta1.AnnotationTLSClientCert]; ok {
-		c.ClientCert = v
+		m.TLSConfig.ClientCert = v
 	}
 	if v, ok := secret.Annotations[infrav1beta1.AnnotationTLSClientKey]; ok {
-		c.ClientKey = v
+		m.TLSConfig.ClientKey = v
 	}
 	if v, ok := secret.Annotations[infrav1beta1.AnnotationTLSServerName]; ok {
-		c.TLSServerName = v
+		m.TLSConfig.TLSServerName = v
 	}
 	if v, ok := secret.Annotations[infrav1beta1.AnnotationTLSInsecure]; ok {
 		if v == "1" || v == "true" || v == "yes" {
-			c.Insecure = true
+			m.TLSConfig.Insecure = true
 		}
 	}
 }
