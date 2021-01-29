@@ -40,7 +40,7 @@ podTemplate(label: 'k8svault-controller',
         }
 
         container('helm') {
-          sh 'helm3 lint chart/k8svault-controller'
+          sh 'helm lint chart/k8svault-controller'
         }
       }
 
@@ -66,8 +66,11 @@ podTemplate(label: 'k8svault-controller',
             bumpImageVersion(version)
 
             tgz="k8ssecret-controller-${version}.tgz"
-            sh "helm3 package chart/k8svault-controller"
+            sh "helm package chart/k8svault-controller"
 
+          }
+
+          container('golang') {
             if (label) {
               publish(tgz, "nexus-staging")
             } else {
