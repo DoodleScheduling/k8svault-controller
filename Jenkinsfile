@@ -35,9 +35,8 @@ podTemplate(label: 'k8svault-controller',
       }
 
       stage("build") {
-        container('docker') {
-          dockerAuth()
-          sh 'make test docker-build'
+        container('golang') {
+          sh 'make all'
         }
 
         container('helm') {
@@ -56,20 +55,25 @@ podTemplate(label: 'k8svault-controller',
           }
 
           version = "$major.$minor.$patch$group"
-          sh 'make docker-build IMG=nexus.doodle.com:5000/devops/k8svault-controller:v$version'
-          sh 'make test docker-push'
 
-          bumpChartVersion("v${version}")
-          bumpImageVersion(version)
+          container('docker') {
+            sh 'docker build . -t nexus.doodle.com:5000/devops/k8svault-controller:v$version'
+            sh 'docker push nexus.doodle.com:5000/devops/k8svault-controller:v$version'
+          }
 
-          tgz="k8ssecret-controller-${version}.tgz"
-          sh "helm3 package chart/k8svault-controller"
+          container('helm') {
+            bumpChartVersion("v${version}")
+            bumpImageVersion(version)
 
-          if (label) {
-            publish(tgz, "nexus-staging")
-          } else {
-            publish(tgz, "nexus-staging")
-            publish(tgz, "nexus-production")
+            tgz="k8ssecret-controller-${version}.tgz"
+            sh "helm3 package chart/k8svault-controller"
+
+            if (label) {
+              publish(tgz, "nexus-staging")
+            } else {
+              publish(tgz, "nexus-staging")
+              publish(tgz, "nexus-production")
+            }
           }
         }
       }
