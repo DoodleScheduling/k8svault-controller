@@ -6,7 +6,6 @@ podTemplate(label: 'go-worker',
     containerTemplate(
       name: 'golang',
       image: 'golang:1.13',
-      command: 'ash',
       ttyEnabled: true
     ),
   ],
