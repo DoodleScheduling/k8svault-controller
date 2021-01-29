@@ -1,7 +1,21 @@
 import java.util.regex.Pattern
 import org.jenkinsci.plugins.pipeline.modeldefinition.Utils
 
-node("jenkins") {
+podTemplate(label: 'go-worker', // See 1
+  containers: [
+    containerTemplate(
+      name: 'golang',
+      image: 'golang:1.13',
+      command: 'ash',
+      ttyEnabled: true
+    ),
+  ],
+  volumes: [
+    hostPathVolume(mountPath: '/var/run/docker.sock', hostPath: '/var/run/docker.sock'),
+  ]
+)
+{
+node ('go-worker') {
   ansiColor("xterm") {
     stage('checkout') {
       checkout(scm)
