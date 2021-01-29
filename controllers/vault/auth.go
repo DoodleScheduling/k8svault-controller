@@ -10,9 +10,7 @@ package vault
 import (
 	"context"
 	"errors"
-	"math/rand"
 	"net/http"
-	"time"
 
 	"github.com/go-logr/logr"
 	vaultapi "github.com/hashicorp/vault/api"
@@ -39,178 +37,82 @@ type AuthMethodWithClient interface {
 type AuthConfig struct {
 	Logger    logr.Logger
 	MountPath string
-	WrapTTL   time.Duration
 	Config    map[string]interface{}
 }
 
 // AuthHandler is responsible for keeping a token alive and renewed and passing
 // new tokens to the sink server
 type AuthHandler struct {
-	//OutputCh                     chan string
-	//TemplateTokenCh              chan string
-	logger                       logr.Logger
-	client                       *vaultapi.Client
-	random                       *rand.Rand
-	wrapTTL                      time.Duration
-	enableReauthOnNewCredentials bool
-	enableTemplateTokenCh        bool
+	logger logr.Logger
+	client *vaultapi.Client
 }
 
 type AuthHandlerConfig struct {
-	Logger                       logr.Logger
-	Client                       *vaultapi.Client
-	WrapTTL                      time.Duration
-	EnableReauthOnNewCredentials bool
-	//EnableTemplateTokenCh        bool
+	Logger logr.Logger
+	Client *vaultapi.Client
 }
 
 func NewAuthHandler(conf *AuthHandlerConfig) *AuthHandler {
 	ah := &AuthHandler{
-		//TemplateTokenCh:              make(chan string, 1),
-		logger:                       conf.Logger,
-		client:                       conf.Client,
-		random:                       rand.New(rand.NewSource(int64(time.Now().Nanosecond()))),
-		wrapTTL:                      conf.WrapTTL,
-		enableReauthOnNewCredentials: conf.EnableReauthOnNewCredentials,
-		//enableTemplateTokenCh:        conf.EnableTemplateTokenCh,
+		logger: conf.Logger,
+		client: conf.Client,
 	}
 
 	return ah
 }
 
-func (ah *AuthHandler) Run(ctx context.Context, am AuthMethod) error {
+func (ah *AuthHandler) Authenticate(ctx context.Context, am AuthMethod) error {
 	if am == nil {
 		return errors.New("auth handler: nil auth method")
 	}
 
-	ah.logger.Info("starting auth handler")
-	defer func() {
-		am.Shutdown()
-		/*close(ah.OutputCh)
-		close(ah.TemplateTokenCh)*/
-		ah.logger.Info("auth handler stopped")
-	}()
+	path, header, data, err := am.Authenticate(ctx, ah.client)
 
-	credCh := am.NewCreds()
-	if !ah.enableReauthOnNewCredentials {
-		realCredCh := credCh
-		credCh = nil
-		if realCredCh != nil {
-			go func() {
-				for {
-					select {
-					case <-ctx.Done():
-						return
-					case <-realCredCh:
-					}
-				}
-			}()
-		}
-	}
-	if credCh == nil {
-		credCh = make(chan struct{})
+	if err != nil {
+		ah.logger.Error(err, "Error getting path or data from method")
+		return err
 	}
 
-	var watcher *vaultapi.LifetimeWatcher
+	var clientToUse *vaultapi.Client
 
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-
-		default:
-		}
-
-		// Create a fresh backoff value
-		backoff := 2*time.Second + time.Duration(ah.random.Int63()%int64(time.Second*2)-int64(time.Second))
-
-		path, header, data, err := am.Authenticate(ctx, ah.client)
-
+	switch am.(type) {
+	case AuthMethodWithClient:
+		clientToUse, err = am.(AuthMethodWithClient).AuthClient(ah.client)
 		if err != nil {
-			ah.logger.Error(err, "Error getting path or data from method", "backoff", backoff.Seconds())
+			ah.logger.Error(err, "Error creating client for authentication call")
 			return err
 		}
+	default:
+		clientToUse = ah.client
+	}
 
-		var clientToUse *vaultapi.Client
-
-		switch am.(type) {
-		case AuthMethodWithClient:
-			clientToUse, err = am.(AuthMethodWithClient).AuthClient(ah.client)
-			if err != nil {
-				ah.logger.Error(err, "Error creating client for authentication call", "backoff", backoff.Seconds())
-				return err
-			}
-		default:
-			clientToUse = ah.client
-		}
-
-		for key, values := range header {
-			for _, value := range values {
-				clientToUse.AddHeader(key, value)
-			}
-		}
-
-		secret, err := clientToUse.Logical().Write(path, data)
-
-		// Check errors/sanity
-		if err != nil {
-			ah.logger.Error(err, "Error authenticating", "backoff", backoff.Seconds())
-			return err
-		}
-
-		if secret == nil || secret.Auth == nil {
-			ah.logger.Error(err, "Authentication returned nil auth info", "backoff", backoff.Seconds())
-			return err
-		}
-
-		if secret.Auth.ClientToken == "" {
-			ah.logger.Error(err, "Authentication returned empty client token", "backoff", backoff.Seconds())
-			return err
-		}
-
-		ah.logger.Info("Authentication successful")
-		ah.client.SetToken(secret.Auth.ClientToken)
-		am.CredSuccess()
-
-		if watcher != nil {
-			watcher.Stop()
-		}
-
-		watcher, err = clientToUse.NewLifetimeWatcher(&vaultapi.LifetimeWatcherInput{
-			Secret: secret,
-		})
-
-		if err != nil {
-			ah.logger.Error(err, "Error creating lifetime watcher, backing off and retrying", "backoff", backoff.Seconds())
-			return err
-		}
-
-		// Start the renewal process
-		ah.logger.Info("Starting renewal process")
-		go watcher.Renew()
-
-	LifetimeWatcherLoop:
-		for {
-			select {
-			case <-ctx.Done():
-				ah.logger.Info("Shutdown triggered, stopping lifetime watcher")
-				watcher.Stop()
-				break LifetimeWatcherLoop
-
-			case err := <-watcher.DoneCh():
-				ah.logger.Info("Lifetime watcher done channel triggered")
-				if err != nil {
-					ah.logger.Error(err, "Error renewing token")
-				}
-				break LifetimeWatcherLoop
-
-			case <-watcher.RenewCh():
-				ah.logger.Info("Renewed auth token")
-
-			case <-credCh:
-				ah.logger.Info("Auth method found new credentials, re-authenticating")
-				break LifetimeWatcherLoop
-			}
+	for key, values := range header {
+		for _, value := range values {
+			clientToUse.AddHeader(key, value)
 		}
 	}
+
+	secret, err := clientToUse.Logical().Write(path, data)
+
+	// Check errors/sanity
+	if err != nil {
+		ah.logger.Error(err, "Error authenticating")
+		return err
+	}
+
+	if secret == nil || secret.Auth == nil {
+		ah.logger.Error(err, "Authentication returned nil auth info")
+		return err
+	}
+
+	if secret.Auth.ClientToken == "" {
+		ah.logger.Error(err, "Authentication returned empty client token")
+		return err
+	}
+
+	ah.logger.Info("Authentication successful")
+	ah.client.SetToken(secret.Auth.ClientToken)
+	am.CredSuccess()
+
+	return nil
 }

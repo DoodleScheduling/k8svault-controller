@@ -126,15 +126,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Create a new vault client registry
-	logger := ctrl.Log.WithName("controllers").WithName("Secret")
-	reg := controllers.NewClientRegistry().WithLogger(logger)
-
 	if err = (&controllers.SecretReconciler{
-		Client:         mgr.GetClient(),
-		Log:            logger,
-		Scheme:         mgr.GetScheme(),
-		ClientRegistry: reg,
+		Client:   mgr.GetClient(),
+		Log:      ctrl.Log.WithName("controllers").WithName("Secret"),
+		Scheme:   mgr.GetScheme(),
+		Recorder: mgr.GetEventRecorderFor("Secret"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Secret")
 		os.Exit(1)

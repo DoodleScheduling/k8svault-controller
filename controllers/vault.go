@@ -3,12 +3,13 @@ package controllers
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
-	"sync"
 
 	"github.com/go-logr/logr"
 	vaultapi "github.com/hashicorp/vault/api"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/tools/record"
 
 	"github.com/DoodleScheduling/k8svault-controller/controllers/vault"
 	"github.com/DoodleScheduling/k8svault-controller/controllers/vault/kubernetes"
@@ -20,48 +21,16 @@ var (
 	ErrK8sSecretFieldNotAvailable = errors.New("K8s secret field to be mapped does not exist")
 )
 
-// ClientRegistry holds a client per vault configuration
-type ClientRegistry struct {
-	logger   logr.Logger
-	registry []*Vault
-	mutex    *sync.Mutex
-}
-
-// WithLogger inject logr compatible logger
-func (r *ClientRegistry) WithLogger(l logr.Logger) *ClientRegistry {
-	r.logger = l
-	return r
-}
-
-// NewClientRegistry returns a new vault client registry
-func NewClientRegistry() *ClientRegistry {
-	return &ClientRegistry{
-		logger: &logr.DiscardLogger{},
-		mutex:  &sync.Mutex{},
-	}
-}
-
 // Make sure we only have one client per setting construct
 // Create vault client and start token lifecycle manager
-func (r *ClientRegistry) setupClient(cfg *vaultapi.Config, m *Mapping) (*Vault, error) {
-	// Return existing client if available
-	for _, v := range r.registry {
-		r.logger.Info("regi", "exist_vault", v.m.Vault, "newv", m.Vault, "exuist_role", v.m.Role, "newfr", m.Role, "exixt_pat", v.m.TokenPath, "new-poa", m.TokenPath)
-
-		if v.m.IsSame(m) {
-			r.logger.Info("Secret is already using a known client")
-			return v, nil
-		}
-	}
-
-	r.logger.Info("Preparing new vault client")
+func setupClient(cfg *vaultapi.Config, m *Mapping, logger logr.Logger) (*Vault, error) {
 	client, err := vaultapi.NewClient(cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	auth := vault.NewAuthHandler(&vault.AuthHandlerConfig{
-		Logger: r.logger,
+		Logger: logger,
 		Client: client,
 	})
 
@@ -78,7 +47,7 @@ func (r *ClientRegistry) setupClient(cfg *vaultapi.Config, m *Mapping) (*Vault, 
 	}
 
 	method, err := kubernetes.NewKubernetesAuthMethod(&vault.AuthConfig{
-		Logger:    r.logger,
+		Logger:    logger,
 		MountPath: "/auth/kubernetes",
 		Config: map[string]interface{}{
 			"role":       role,
@@ -90,46 +59,23 @@ func (r *ClientRegistry) setupClient(cfg *vaultapi.Config, m *Mapping) (*Vault, 
 		return nil, err
 	}
 
-	v := &Vault{
-		c:    client,
-		cfg:  cfg,
-		auth: auth,
-		m:    m,
-		// We inject a /dev/null logger here because the registry which is also responsible to delegate token renewals
-		// logs with other context (global context) while a vault mapping instance logs on a per secret context
-		// You can inject a separate logger into Vault{}
-		logger: &logr.DiscardLogger{},
+	if err := auth.Authenticate(context.TODO(), method); err != nil {
+		return nil, err
 	}
 
-	// Start auth lifecycle
-	// If any error occurs we're going to remove the client from the registry
-	// and let it recreate in the next reconcilation as settings might have changed.
-	go func(v *Vault, logr.Logger) {
-		r.logger.Info("Starting token auth lifecycle manager")
-		err := auth.Run(context.TODO(), method)
-		if err != nil {
-			r.logger.Error(error, "Got error from token lifecycle manager")
-
-			r.mutex.Lock()
-			for k,regClient := range r.registry {
-				if v == regClient {
-					r.registry = append(s[:index], s[index+1:]...)
-				}
-			}
-			r.mutex.Unlock()
-		}
-	}(v, logger)
-
-	r.mutex.Lock()
-	r.registry = append(r.registry, v)
-	r.mutex.Unlock()
+	v := &Vault{
+		c:      client,
+		cfg:    cfg,
+		m:      m,
+		logger: logger,
+	}
 
 	return v, nil
 }
 
 // FromMapping creates a vault client from Kubernetes to Vault mapping
 // If the mapping holds no vault address it will fallback to the env VAULT_ADDRESS
-func (r *ClientRegistry) FromMapping(m *Mapping) (*Vault, error) {
+func FromMapping(m *Mapping, logger logr.Logger) (*Vault, error) {
 	cfg := vaultapi.DefaultConfig()
 
 	if m.Vault != "" {
@@ -139,16 +85,10 @@ func (r *ClientRegistry) FromMapping(m *Mapping) (*Vault, error) {
 	// Overwrite TLS setttings with individual settings
 	cfg.ConfigureTLS(m.TLSConfig)
 
-	client, err := r.setupClient(cfg, m)
+	client, err := setupClient(cfg, m, logger)
 	if err != nil {
 		return nil, err
 	}
-
-	// Check if our token sink has a new token
-	/*var token string
-	token = <-client.auth.OutputCh
-	r.logger.Info("TOKEN", "toklen", token)
-	client.c.SetToken(token)*/
 
 	return client, nil
 }
@@ -162,14 +102,10 @@ type Vault struct {
 	logger logr.Logger
 }
 
-// WithLogger inject logr compatible logger
-func (v *Vault) WithLogger(l logr.Logger) *Vault {
-	v.logger = l
-	return v
-}
-
 // ApplySecret applies the desired secret to vault
-func (v *Vault) ApplySecret(m *Mapping, secret *corev1.Secret) error {
+func (v *Vault) ApplySecret(m *Mapping, secret *corev1.Secret, rec record.EventRecorder) error {
+	var writeBack bool
+
 	// TODO Is there such a thing as locking the path so we don't overwrite fields which would be changed at the same time?
 	data, err := v.Read(m.Path)
 	if err != nil {
@@ -189,21 +125,34 @@ func (v *Vault) ApplySecret(m *Mapping, secret *corev1.Secret) error {
 
 		secret := string(k8sValue)
 
-		//  Don't overwrite vault field if force is false
-		if _, ok := data[vaultField]; ok {
-			if m.Force == true {
-				data[vaultField] = secret
-			} else {
-				v.logger.Info("Skipping field, it already exists in vault and force apply is disabled", "vaultField", vaultField)
-			}
-		} else {
+		_, existingField := data[vaultField]
+
+		switch {
+		case !existingField:
+			v.logger.Info("Found new field to write", "vaultField", vaultField)
 			data[vaultField] = secret
+			writeBack = true
+		case data[vaultField] == secret:
+			v.logger.Info("Skipping field, no update required", "vaultField", vaultField)
+		case m.Force == true:
+			data[vaultField] = secret
+			writeBack = true
+		default:
+			v.logger.Info("Skipping field, it already exists in vault and force apply is disabled", "vaultField", vaultField)
 		}
 	}
 
-	// Finally write the secret back
-	_, err = v.c.Logical().Write(m.Path, data)
-	return err
+	if writeBack == true {
+		// Finally write the secret back
+		_, err = v.c.Logical().Write(m.Path, data)
+		if err != nil {
+			return err
+		}
+
+		rec.Event(secret, "Normal", "errror", fmt.Sprintf("Synced secret %s/%s fields to vault", secret.Namespace, secret.Name))
+	}
+
+	return nil
 }
 
 // Read vault path and return data map

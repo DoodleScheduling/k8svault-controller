@@ -28,20 +28,6 @@ type Mapping struct {
 	Fields    map[string]string
 }
 
-// IsSame compare mapping against another mapping to tell whether they contain equal values
-// to differentiate clients
-func (m *Mapping) IsSame(comp *Mapping) bool {
-	if m == nil {
-		return false
-	}
-
-	if /**m.TLSConfig == *comp.TLSConfig &&*/ m.Vault == comp.Vault && m.Role == comp.Role && m.TokenPath == comp.TokenPath {
-		return true
-	}
-
-	return false
-}
-
 // NewMapping creates a new mapping
 func NewMapping() *Mapping {
 	return &Mapping{

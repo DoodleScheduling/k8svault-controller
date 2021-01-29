@@ -18,11 +18,13 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -33,9 +35,9 @@ import (
 // SecretReconciler reconciles a Secret object
 type SecretReconciler struct {
 	client.Client
-	Log            logr.Logger
-	Scheme         *runtime.Scheme
-	ClientRegistry *ClientRegistry
+	Log      logr.Logger
+	Scheme   *runtime.Scheme
+	Recorder record.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
@@ -75,7 +77,7 @@ func (r *SecretReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 
 		logger.Info("Parsed annotation into mapping", "mapping", m)
-		v, err := r.ClientRegistry.FromMapping(m)
+		v, err := FromMapping(m, logger)
 
 		// Failed to setup vault client, requeue immediately
 		if err != nil {
@@ -83,11 +85,12 @@ func (r *SecretReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			return reconcile.Result{Requeue: true}, err
 		}
 
-		err = v.WithLogger(logger).ApplySecret(m, desired)
+		err = v.ApplySecret(m, desired, r.Recorder)
 
 		// Failed applying state to vault, requeue immediately
 		if err != nil {
 			logger.Error(err, "Failed apply desired state to vault")
+			r.Recorder.Event(instance, "Normal", "error", fmt.Sprintf("Failed to sync secret to vault %s/%s: %s", instance.Namespace, instance.Name, err.Error()))
 			return reconcile.Result{Requeue: true}, err
 		}
 	}
