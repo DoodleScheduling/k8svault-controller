@@ -28,9 +28,6 @@ spec:
       serviceAccountName: {{ template "k8svault-controller.serviceAccountName" . }}
       containers:
       - name: k8svault-controller
-        envFrom:
-        - secretRef:
-            name: {{ include "k8svault-controller.secretName" . }}
         env:
         {{- if .Values.env }}
         {{- range $key, $value := .Values.env }}
@@ -53,14 +50,15 @@ spec:
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         args:
-        - --bind={{ printf ":%s" .Values.port }}
-        - --path={{ .Values.metricsPath }}
         {{- if .Values.extraArgs }}
         {{- toYaml .Values.extraArgs | nindent 8 }}
         {{- end }}
         ports:
         - name: metrics
-          containerPort: {{ .Values.port }}
+          containerPort: {{ .Values.metricsPort }}
+          protocol: TCP
+        - name: probes
+          containerPort: {{ .Values.probesPort }}
           protocol: TCP
         livenessProbe:
           {{- toYaml .Values.livenessProbe | nindent 10 }}

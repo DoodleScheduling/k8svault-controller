@@ -16,7 +16,7 @@ imagePullSecrets: []
 livenessProbe:
   httpGet:
     path: /healthz
-    port: metrics
+    port: probes
   initialDelaySeconds: 10
 
 nameOverride: ""
@@ -37,7 +37,8 @@ podAnnotations: {}
 #  prometheus.io/scrape: "true"
 #  prometheus.io/port: "metrics"
 
-port: "9556"
+metricsPort: "9556"
+probesPort: "9557"
 
 # Change the metrics path
 metricsPath: /metrics
@@ -47,7 +48,7 @@ priorityClassName: ""
 readinessProbe:
   httpGet:
     path: /readyz
-    port: metrics
+    port: probes
   initialDelaySeconds: 10
 
 replicas: 1
@@ -87,7 +88,6 @@ securityContext:
 service:
   labels: {}
   annotations: {}
-  port: 9556
   type: ClusterIP
 
 serviceAccount:

@@ -21,6 +21,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,8 +32,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"github.com/DoodleScheduling/k8svault-controller/controllers"
-	"github.com/prometheus/common/log"
-	"github.com/spf13/pflag"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -50,40 +49,22 @@ func init() {
 
 var (
 	metricsAddr             = ":9556"
+	probeAddr               = ":9557"
 	enableLeaderElection    = true
 	leaderElectionNamespace string
-	/*vaultAddress            string
-	tlsInsecure             bool
-	tlsServerName           string
-	tlsCAPath               string
-	tlsCACert               string
-	tlsClientCert           string
-	tlsClientKey            string*/
 )
 
 func main() {
-	flag.StringVar(&metricsAddr, "metrics-addr", ":9556", "The address the metric endpoint binds to.")
+	flag.StringVar(&metricsAddr, "metrics-addr", ":9556", "The address of the metric endpoint binds to.")
+	flag.StringVar(&probeAddr, "probe-addr", ":9557", "The address of the probe listener.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", true,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.StringVar(&leaderElectionNamespace, "leader-election-namespace", "",
 		"Specify a different leader election namespace. It will use the one where the controller is deployed by default.")
-	/*flag.StringVar(&vaultAddress, "vault-addr", "",
-		"Fallback vault server if no one was specified in annotations.")
-	flag.BoolVar(&tlsInsecure, "tls-insecure", false,
-		"Allow insecure TLS communication to vault (no certificate validation).")
-	flag.StringVar(&tlsServerName, "tls-server-name", "",
-		"Used to set the SNI host when connecting to vault.")
-	flag.StringVar(&tlsCAPath, "tls-capath", "",
-		"CAPath is the path to a directory of PEM-encoded CA cert files to verify CAPath string.")
-	flag.StringVar(&tlsCACert, "tls-cacert", "",
-		"CACert is the path to a PEM-encoded CA cert file used to verify the Vault server SSL certificate.")
-	flag.StringVar(&tlsClientCert, "tls-client-cert", "",
-		"The path to the certificate for Vault communication.")
-	flag.StringVar(&tlsClientKey, "tls-client-key", "",
-		"The private key for Vault communication.")*/
 
-	flag.Parse()
+	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+	pflag.Parse()
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
 	// Import flags into viper and bind them to env vars
@@ -91,7 +72,7 @@ func main() {
 	// secret-length -> SECRET_LENGTH
 	err := viper.BindPFlags(pflag.CommandLine)
 	if err != nil {
-		log.Error(err, "Failed parsing command line arguments")
+		setupLog.Error(err, "Failed parsing command line arguments")
 		os.Exit(1)
 	}
 
@@ -102,7 +83,8 @@ func main() {
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                  scheme,
 		MetricsBindAddress:      viper.GetString("metrics-addr"),
-		Port:                    9555,
+		HealthProbeBindAddress:  viper.GetString("probe-addr"),
+		Port:                    9443,
 		LeaderElection:          viper.GetBool("enable-leader-election"),
 		LeaderElectionNamespace: viper.GetString("leader-election-namespace"),
 		LeaderElectionID:        "1d602b51.doodle.com",
@@ -115,14 +97,14 @@ func main() {
 	// Add liveness probe
 	err = mgr.AddHealthzCheck("healthz", healthz.Ping)
 	if err != nil {
-		log.Error(err, "Could not add liveness probe")
+		setupLog.Error(err, "Could not add liveness probe")
 		os.Exit(1)
 	}
 
 	// Add readiness probe
 	err = mgr.AddReadyzCheck("readyz", healthz.Ping)
 	if err != nil {
-		log.Error(err, "Could not add readiness probe")
+		setupLog.Error(err, "Could not add readiness probe")
 		os.Exit(1)
 	}
 
