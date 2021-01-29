@@ -1,7 +1,7 @@
 import java.util.regex.Pattern
 import org.jenkinsci.plugins.pipeline.modeldefinition.Utils
 
-podTemplate(label: 'go-worker', // See 1
+podTemplate(label: 'go-worker',
   containers: [
     containerTemplate(
       name: 'golang',
@@ -13,45 +13,45 @@ podTemplate(label: 'go-worker', // See 1
   volumes: [
     hostPathVolume(mountPath: '/var/run/docker.sock', hostPath: '/var/run/docker.sock'),
   ]
-)
-{
-node ('go-worker') {
-  ansiColor("xterm") {
-    stage('checkout') {
-      checkout(scm)
-      dockerAuth()
-    }
+) {
+  node ('go-worker') {
+    ansiColor("xterm") {
+      stage('checkout') {
+        checkout(scm)
+        dockerAuth()
+      }
 
-    stage("build") {
-      sh 'make test docker-build'
-      sh 'helm3 lint chart/k8svault-controller'
-    }
+      stage("build") {
+        sh 'make test docker-build'
+        sh 'helm3 lint chart/k8svault-controller'
+      }
 
-    stage("publish") {
-      if (!env.TAG_NAME) {
-        echo "skip packaging for no tagged release"
-      } else {
-        def (_,major,minor,patch,group,label,build) = (env.TAG_NAME =~ /^v(\d{1,3})\.(\d{1,3})\.(\d{1,3})(?:(-([A-Za-z0-9]+)))?$/)[0]
-
-        if (!major && !minor && !patch) {
-          throw new Exception("Invalid tag detected, requires semantic version")
-        }
-
-        version = "$major.$minor.$patch$group"
-        sh 'make docker-build IMG=nexus.doodle.com:5000/devops/k8svault-controller:v$version'
-        sh 'make test docker-push'
-
-        bumpChartVersion("v${version}")
-        bumpImageVersion(version)
-
-        tgz="k8ssecret-controller-${version}.tgz"
-        sh "helm3 package chart/k8svault-controller"
-
-        if (label) {
-          publish(tgz, "nexus-staging")
+      stage("publish") {
+        if (!env.TAG_NAME) {
+          echo "skip packaging for no tagged release"
         } else {
-          publish(tgz, "nexus-staging")
-          publish(tgz, "nexus-production")
+          def (_,major,minor,patch,group,label,build) = (env.TAG_NAME =~ /^v(\d{1,3})\.(\d{1,3})\.(\d{1,3})(?:(-([A-Za-z0-9]+)))?$/)[0]
+
+          if (!major && !minor && !patch) {
+            throw new Exception("Invalid tag detected, requires semantic version")
+          }
+
+          version = "$major.$minor.$patch$group"
+          sh 'make docker-build IMG=nexus.doodle.com:5000/devops/k8svault-controller:v$version'
+          sh 'make test docker-push'
+
+          bumpChartVersion("v${version}")
+          bumpImageVersion(version)
+
+          tgz="k8ssecret-controller-${version}.tgz"
+          sh "helm3 package chart/k8svault-controller"
+
+          if (label) {
+            publish(tgz, "nexus-staging")
+          } else {
+            publish(tgz, "nexus-staging")
+            publish(tgz, "nexus-production")
+          }
         }
       }
     }
