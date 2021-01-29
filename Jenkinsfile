@@ -1,11 +1,21 @@
 import java.util.regex.Pattern
 import org.jenkinsci.plugins.pipeline.modeldefinition.Utils
 
-podTemplate(label: 'go-worker',
+podTemplate(label: 'k8svault-controller',
   containers: [
     containerTemplate(
       name: 'golang',
       image: 'golang:1.13',
+      ttyEnabled: true
+    ),
+    containerTemplate(
+      name: 'docker',
+      image: 'docker:latest',
+      ttyEnabled: true
+    ),
+    containerTemplate(
+      name: 'helm',
+      image: 'alpine/helm:latest',
       ttyEnabled: true
     ),
   ],
@@ -13,16 +23,25 @@ podTemplate(label: 'go-worker',
     hostPathVolume(mountPath: '/var/run/docker.sock', hostPath: '/var/run/docker.sock'),
   ]
 ) {
-  node ('go-worker') {
+  node ('k8svault-controller') {
     ansiColor("xterm") {
       stage('checkout') {
         checkout(scm)
-        dockerAuth()
+      
+        container('docker') {
+          dockerAuth()
+        }
       }
 
       stage("build") {
-        sh 'make test docker-build'
-        sh 'helm3 lint chart/k8svault-controller'
+        container('docker') {
+          dockerAuth()
+          sh 'make test docker-build'
+        }
+
+        container('helm') {
+          sh 'helm3 lint chart/k8svault-controller'
+        }
       }
 
       stage("publish") {
