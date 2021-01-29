@@ -15,6 +15,7 @@ podTemplate(label: 'k8svault-controller',
     ),
     containerTemplate(
       name: 'helm',
+      command: '/bin/ash',
       image: 'alpine/helm:latest',
       ttyEnabled: true
     ),
