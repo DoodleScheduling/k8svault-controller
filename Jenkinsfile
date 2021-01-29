@@ -5,7 +5,7 @@ podTemplate(label: 'k8svault-controller',
   containers: [
     containerTemplate(
       name: 'golang',
-      image: 'golang:1.13',
+      image: 'bitnami/golang:1.13',
       ttyEnabled: true
     ),
     containerTemplate(
