@@ -1,6 +1,6 @@
 {{- if .Values.clusterRBAC.enabled -}}
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+kind: ClusterRoleBinding
 metadata:
   name: {{ template "k8svault-controller.fullname" . }}
   labels:
