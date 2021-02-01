@@ -6,7 +6,7 @@ keywords:
 - kubernetes-controller
 - secret
 - vault
-name: k8svault-secret
+name: k8svault-controller
 sources:
 - https://github.com/DoodleScheduling/k8svault-controller
 version: 0.0.0
