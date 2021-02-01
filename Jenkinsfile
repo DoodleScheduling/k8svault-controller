@@ -58,7 +58,7 @@ podTemplate(label: 'k8svault-controller',
 
           container('docker') {
             sh "docker build . -t nexus.doodle.com:5000/devops/k8svault-controller:${env.TAG_NAME}"
-            sh "docker push nexus.doodle.com:5000/devops/k8svault-controller:v${env.TAG_NAME}"
+            sh "docker push nexus.doodle.com:5000/devops/k8svault-controller:${env.TAG_NAME}"
           }
 
           container('helm') {
