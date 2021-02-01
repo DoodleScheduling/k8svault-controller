@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	infradoodlecomv1beta1 "github.com/DoodleScheduling/k8svault-controller/api/v1beta1"
 	"github.com/DoodleScheduling/k8svault-controller/controllers"
 	// +kubebuilder:scaffold:imports
 )
@@ -44,6 +45,7 @@ func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 
 	_ = corev1.AddToScheme(scheme)
+	_ = infradoodlecomv1beta1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -69,7 +71,7 @@ func main() {
 
 	// Import flags into viper and bind them to env vars
 	// flags are converted to upper-case, - is replaced with _
-	// secret-length -> SECRET_LENGTH
+	// VaultClaim-length -> VaultClaim_LENGTH
 	err := viper.BindPFlags(pflag.CommandLine)
 	if err != nil {
 		setupLog.Error(err, "Failed parsing command line arguments")
@@ -108,13 +110,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.SecretReconciler{
+	if err = (&controllers.VaultClaim{
 		Client:   mgr.GetClient(),
-		Log:      ctrl.Log.WithName("controllers").WithName("Secret"),
+		Log:      ctrl.Log.WithName("controllers").WithName("VaultClaim"),
 		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("Secret"),
+		Recorder: mgr.GetEventRecorderFor("VaultClaim"),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Secret")
+		setupLog.Error(err, "unable to create controller", "controller", "VaultClaim")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

@@ -1,3 +1,7 @@
 domain: doodle.com
 repo: github.com/DoodleScheduling/k8svault-controller
+resources:
+- group: infra.doodle.com
+  kind: VaultClaim
+  version: v1beta1
 version: "2"

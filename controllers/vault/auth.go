@@ -1,5 +1,5 @@
 // This package implements authentication for vault
-// Most of this code within this package has been borrowed from the vault client agent.
+// Most of this code within this package has been borrowed and shrinked from the vault client agent.
 // See https://github.com/hashicorp/vault/blob/master/command/agent/auth/auth.go
 
 // Note this package uses API which is in the vault stable release but it was not released in the api package,
