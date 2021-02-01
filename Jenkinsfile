@@ -72,10 +72,10 @@ podTemplate(label: 'k8svault-controller',
 
           container('golang') {
             if (label) {
-              publish(tgz, "nexus-staging")
+              publish(tgz, "helm-staging")
             } else {
-              publish(tgz, "nexus-staging")
-              publish(tgz, "nexus-production")
+              publish(tgz, "helm-staging")
+              publish(tgz, "helm-production")
             }
           }
         }
