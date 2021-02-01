@@ -110,7 +110,7 @@ def bumpImageVersion(String version) {
   echo "Update image tag"
   def valuesFile = "./chart/k8svault-controller/values.yaml"
   def valuesData = readYaml file: valuesFile
-  chartData.image.tag = version
+  valuesData.image.tag = version
 
   sh "rm $valuesFile"
   writeYaml file: valuesFile, data: valuesData
