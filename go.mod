@@ -14,6 +14,7 @@ require (
 	github.com/jgautheron/goconst v0.0.0-20201117150253-ccae5bf973f3 // indirect
 	github.com/onsi/ginkgo v1.11.0
 	github.com/onsi/gomega v1.8.1
+	github.com/opennota/check v0.0.0-20180911053232-0c771f5545ff // indirect
 	github.com/prometheus/common v0.4.1
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.3.2
