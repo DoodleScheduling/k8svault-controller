@@ -65,7 +65,7 @@ podTemplate(label: 'k8svault-controller',
             bumpChartVersion(version)
             bumpImageVersion(env.TAG_NAME)
 
-            tgz="k8ssecret-controller-${version}.tgz"
+            tgz="k8svault-controller-${version}.tgz"
             sh "helm package chart/k8svault-controller"
 
           }
