@@ -13,10 +13,30 @@ metadata:
 rules:
 - apiGroups: ['v1']
   resources:
-    - ""
+    - "secrets"
   verbs:
     - get
     - list
     - watch
     - update
+- apiGroups:
+  - ""
+  resources:
+  - VaultBindings
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - VaultBindings/status
+  verbs:
+  - get
+  - patch
+  - update
 {{- end }}

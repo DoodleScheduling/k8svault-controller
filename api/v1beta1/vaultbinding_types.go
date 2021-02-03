@@ -18,11 +18,12 @@ package v1beta1
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// VaultClaimSpec defines the desired state of VaultClaim
-type VaultClaimSpec struct {
+// VaultBindingSpec defines the desired state of VaultBinding
+type VaultBindingSpec struct {
 	Address    string                  `json:"address,omitempty"`
 	Path       string                  `json:"path,omitempty"`
 	ForceApply bool                    `json:"forceApply,omitempty"`
@@ -52,15 +53,18 @@ type VaultTLSSpec struct {
 	Insecure   bool   `json:"insecure,omitempty"`
 }
 
-// VaultClaimStatus defines the observed state of VaultClaim
-type VaultClaimStatus struct {
+// VaultBindingStatus defines the observed state of VaultBinding
+type VaultBindingStatus struct {
+	// Failures is the number of failures occured while reconciling
+	Failures int64 `json:"failures,omitempty"`
+
 	// ObservedGeneration is the last observed generation.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
-	// Conditions holds the conditions for the HelmRelease.
+	// Conditions holds the conditions for the VaultBinding.
 	// +optional
-	//Conditions []metav1.Condition `json:"conditions,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	// LastAppliedRevision is the revision of the last successfully applied source.
 	// +optional
@@ -70,7 +74,7 @@ type VaultClaimStatus struct {
 	// +optional
 	LastAttemptedRevision string `json:"lastAttemptedRevision,omitempty"`
 
-	Vault VaultClaimVaultStatus `json:",inline"`
+	Vault VaultBindingVaultStatus `json:",inline"`
 }
 
 const (
@@ -81,16 +85,10 @@ const (
 	SecretNotFoundReason        = "SecretNotFoundFailed"
 )
 
-// ObjectWithStatusConditions is an interface that describes kubernetes resource
-// type structs with Status Conditions
-type ObjectWithStatusConditions interface {
-	GetStatusConditions() *[]metav1.Condition
-}
-
 // setResourceCondition sets the given condition with the given status,
 // reason and message on a resource.
-func setResourceCondition(obj ObjectWithStatusConditions, condition string, status metav1.ConditionStatus, reason, message string) {
-	conditions := obj.GetStatusConditions()
+func setResourceCondition(binding *VaultBinding, condition string, status metav1.ConditionStatus, reason, message string) {
+	conditions := binding.GetStatusConditions()
 
 	newCondition := metav1.Condition{
 		Type:    condition,
@@ -102,45 +100,56 @@ func setResourceCondition(obj ObjectWithStatusConditions, condition string, stat
 	apimeta.SetStatusCondition(conditions, newCondition)
 }
 
-func VaultClaimNotBound(claim *VaultClaim, reason, message string) HelmRelease {
-	setResourceCondition(claim, BoundCondition, metav1.ConditionFalse, reason, message)
-	claim.Status.Failures++
-	return claim
+// VaultBindingNotBound de
+func VaultBindingNotBound(binding *VaultBinding, reason, message string) *VaultBinding {
+	setResourceCondition(binding, BoundCondition, metav1.ConditionFalse, reason, message)
+	binding.Status.Failures++
+	return binding
 }
 
-func VaultClaimBound(claim *VaultClaim, reason, message string) HelmRelease {
-	setResourceCondition(claim, BoundCondition, metav1.ConditionTrue, reason, message)
-	claim.Status.Failures++
-	return claim
+// VaultBindingBound de
+func VaultBindingBound(binding *VaultBinding, reason, message string) *VaultBinding {
+	setResourceCondition(binding, BoundCondition, metav1.ConditionTrue, reason, message)
+	binding.Status.Failures = 0
+	return binding
 }
 
-type VaultClaimVaultStatus struct {
-	Address    string `json:"address,omitempty"`
-	Path       string `json:"path,omitempty"`
-	ForceApply bool   `json:"forceApply,omitempty"`
-	Fields     string `json:"fields,omitempty"`
+// GetStatusConditions returns a pointer to the Status.Conditions slice
+func (in *VaultBinding) GetStatusConditions() *[]metav1.Condition {
+	return &in.Status.Conditions
+}
+
+type VaultBindingVaultStatus struct {
+	Address string `json:"address,omitempty"`
+	Path    string `json:"path,omitempty"`
+	Fields  string `json:"fields,omitempty"`
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:resource:shortName=vb
+// +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.conditions[?(@.type==\"Bound\")].status",description=""
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Bound\")].message",description=""
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description=""
 
-// VaultClaim is the Schema for the vaultclaims API
-type VaultClaim struct {
+// VaultBinding is the Schema for the vaultbindings API
+type VaultBinding struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   VaultClaimSpec   `json:"spec,omitempty"`
-	Status VaultClaimStatus `json:"status,omitempty"`
+	Spec   VaultBindingSpec   `json:"spec,omitempty"`
+	Status VaultBindingStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// VaultClaimList contains a list of VaultClaim
-type VaultClaimList struct {
+// VaultBindingList contains a list of VaultBinding
+type VaultBindingList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []VaultClaim `json:"items"`
+	Items           []VaultBinding `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&VaultClaim{}, &VaultClaimList{})
+	SchemeBuilder.Register(&VaultBinding{}, &VaultBindingList{})
 }

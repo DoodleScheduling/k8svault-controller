@@ -16,7 +16,7 @@ limitations under the License.
 
 // Package v1beta1 contains API Schema definitions for the infra.doodle.com v1beta1 API group
 // +kubebuilder:object:generate=true
-// +groupName=infra.doodle.com.doodle.com
+// +groupName=infra.doodle.com
 package v1beta1
 
 import (

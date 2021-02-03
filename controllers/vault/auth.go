@@ -66,7 +66,7 @@ func (ah *AuthHandler) Authenticate(ctx context.Context, am AuthMethod) error {
 		return errors.New("auth handler: nil auth method")
 	}
 
-	path, header, data, err := am.Authenticate(ctx, ah.client)
+	path, _, data, err := am.Authenticate(ctx, ah.client)
 
 	if err != nil {
 		ah.logger.Error(err, "Error getting path or data from method")
@@ -86,11 +86,11 @@ func (ah *AuthHandler) Authenticate(ctx context.Context, am AuthMethod) error {
 		clientToUse = ah.client
 	}
 
-	for key, values := range header {
+	/*for key, values := range header {
 		for _, value := range values {
 			clientToUse.AddHeader(key, value)
 		}
-	}
+	}*/
 
 	secret, err := clientToUse.Logical().Write(path, data)
 

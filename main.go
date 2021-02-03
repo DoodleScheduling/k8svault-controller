@@ -71,7 +71,7 @@ func main() {
 
 	// Import flags into viper and bind them to env vars
 	// flags are converted to upper-case, - is replaced with _
-	// VaultClaim-length -> VaultClaim_LENGTH
+	// VaultBinding-length -> VaultBinding_LENGTH
 	err := viper.BindPFlags(pflag.CommandLine)
 	if err != nil {
 		setupLog.Error(err, "Failed parsing command line arguments")
@@ -110,13 +110,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.VaultClaim{
+	if err = (&controllers.VaultBindingReconciler{
 		Client:   mgr.GetClient(),
-		Log:      ctrl.Log.WithName("controllers").WithName("VaultClaim"),
+		Log:      ctrl.Log.WithName("controllers").WithName("VaultBinding"),
 		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("VaultClaim"),
+		Recorder: mgr.GetEventRecorderFor("VaultBinding"),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "VaultClaim")
+		setupLog.Error(err, "unable to create controller", "controller", "VaultBinding")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
