@@ -69,7 +69,7 @@ func (ah *AuthHandler) Authenticate(ctx context.Context, am AuthMethod) error {
 	path, _, data, err := am.Authenticate(ctx, ah.client)
 
 	if err != nil {
-		ah.logger.Error(err, "Error getting path or data from method")
+		ah.logger.Error(err, "error getting path or data from method")
 		return err
 	}
 
@@ -79,7 +79,7 @@ func (ah *AuthHandler) Authenticate(ctx context.Context, am AuthMethod) error {
 	case AuthMethodWithClient:
 		clientToUse, err = am.(AuthMethodWithClient).AuthClient(ah.client)
 		if err != nil {
-			ah.logger.Error(err, "Error creating client for authentication call")
+			ah.logger.Error(err, "error creating client for authentication call")
 			return err
 		}
 	default:
@@ -96,21 +96,21 @@ func (ah *AuthHandler) Authenticate(ctx context.Context, am AuthMethod) error {
 
 	// Check errors/sanity
 	if err != nil {
-		ah.logger.Error(err, "Error authenticating")
+		ah.logger.Error(err, "error authenticating")
 		return err
 	}
 
 	if secret == nil || secret.Auth == nil {
-		ah.logger.Error(err, "Authentication returned nil auth info")
+		ah.logger.Error(err, "authentication returned nil auth info")
 		return err
 	}
 
 	if secret.Auth.ClientToken == "" {
-		ah.logger.Error(err, "Authentication returned empty client token")
+		ah.logger.Error(err, "authentication returned empty client token")
 		return err
 	}
 
-	ah.logger.Info("Authentication successful")
+	ah.logger.Info("authentication successful")
 	ah.client.SetToken(secret.Auth.ClientToken)
 	am.CredSuccess()
 

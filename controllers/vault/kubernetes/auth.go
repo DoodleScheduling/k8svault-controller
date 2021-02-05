@@ -38,10 +38,10 @@ type kubernetesMethod struct {
 // AuthMethod
 func NewKubernetesAuthMethod(conf *vault.AuthConfig) (vault.AuthMethod, error) {
 	if conf == nil {
-		return nil, errors.New("Empty config")
+		return nil, errors.New("empty config")
 	}
 	if conf.Config == nil {
-		return nil, errors.New("Empty config data")
+		return nil, errors.New("empty config data")
 	}
 
 	k := &kubernetesMethod{
@@ -51,18 +51,18 @@ func NewKubernetesAuthMethod(conf *vault.AuthConfig) (vault.AuthMethod, error) {
 
 	roleRaw, ok := conf.Config["role"]
 	if !ok {
-		return nil, errors.New("Missing 'role' value")
+		return nil, errors.New("missing 'role' value")
 	}
 	k.role, ok = roleRaw.(string)
 	if !ok {
-		return nil, errors.New("Could not convert 'role' config value to string")
+		return nil, errors.New("could not convert 'role' config value to string")
 	}
 
 	tokenPathRaw, ok := conf.Config["token_path"]
 	if ok {
 		k.tokenPath, ok = tokenPathRaw.(string)
 		if !ok {
-			return nil, errors.New("Could not convert 'token_path' config value to string")
+			return nil, errors.New("could not convert 'token_path' config value to string")
 		}
 	}
 
@@ -74,11 +74,11 @@ func NewKubernetesAuthMethod(conf *vault.AuthConfig) (vault.AuthMethod, error) {
 }
 
 func (k *kubernetesMethod) Authenticate(ctx context.Context, client *vaultapi.Client) (string, http.Header, map[string]interface{}, error) {
-	k.logger.Info("Beginning authentication")
+	k.logger.Info("beginning authentication")
 
 	jwtString, err := k.readJWT()
 	if err != nil {
-		return "", nil, nil, errwrap.Wrapf("Error reading JWT with Kubernetes Auth: {{err}}", err)
+		return "", nil, nil, errwrap.Wrapf("error reading JWT with Kubernetes Auth: {{err}}", err)
 	}
 
 	return fmt.Sprintf("%s/login", k.mountPath), nil, map[string]interface{}{

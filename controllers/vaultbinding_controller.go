@@ -29,9 +29,8 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	v1beta1 "github.com/DoodleScheduling/k8svault-controller/api/v1beta1"
 )
@@ -39,9 +38,14 @@ import (
 // VaultBinding reconciles a VaultBinding object
 type VaultBindingReconciler struct {
 	client.Client
+	indexer  client.FieldIndexer
 	Log      logr.Logger
 	Scheme   *runtime.Scheme
 	Recorder record.EventRecorder
+}
+
+type VaultBindingReconcilerOptions struct {
+	MaxConcurrentReconciles int
 }
 
 // +kubebuilder:rbac:groups=core,resources=VaultBindings,verbs=get;list;watch;create;update;patch;delete
@@ -50,7 +54,7 @@ type VaultBindingReconciler struct {
 // Reconcile VaultBindings
 func (r *VaultBindingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := r.Log.WithValues("Namespace", req.Namespace, "Name", req.NamespacedName)
-	logger.Info("Reconciling VaultBinding")
+	logger.Info("reconciling VaultBinding")
 
 	// Fetch the VaultBinding instance
 	binding := &v1beta1.VaultBinding{}
@@ -132,24 +136,10 @@ func (r *VaultBindingReconciler) patchStatus(ctx context.Context, binding *v1bet
 	return r.Client.Status().Patch(ctx, binding, client.MergeFrom(latest))
 }
 
-func (r *VaultBindingReconciler) watchSecrets() {
-	// Watch Deployments and trigger Reconciles for objects
-	// mapped from the Deployment in the event
-	err := r.Client.Watch(
-		&source.Kind{Type: &appsv1.Deployment{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: mapFn,
-		},
-		// Comment it if default predicate fun is used.
-		p)
-	if err != nil {
-		return err
-	}
-}
-
 // SetupWithManager adding controllers
-func (r *VaultBindingReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *VaultBindingReconciler) SetupWithManager(mgr ctrl.Manager, opts VaultBindingReconcilerOptions) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1beta1.VaultBinding{}).
+		WithOptions(controller.Options{MaxConcurrentReconciles: opts.MaxConcurrentReconciles}).
 		Complete(r)
 }

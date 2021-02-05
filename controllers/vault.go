@@ -144,7 +144,7 @@ func (h *VaultHandler) ApplySecret(binding *v1beta1.VaultBinding, secret *corev1
 			vaultField = field.Rename
 		}
 
-		h.logger.Info("Applying k8s field to vault", "k8sField", k8sField, "vaultField", vaultField, "vaultPath", binding.Spec.Path)
+		h.logger.Info("applying k8s field to vault", "k8sField", k8sField, "vaultField", vaultField, "vaultPath", binding.Spec.Path)
 
 		// If k8s secret field does not exists return an error
 		k8sValue, ok := secret.Data[k8sField]
@@ -158,16 +158,16 @@ func (h *VaultHandler) ApplySecret(binding *v1beta1.VaultBinding, secret *corev1
 
 		switch {
 		case !existingField:
-			h.logger.Info("Found new field to write", "vaultField", vaultField)
+			h.logger.Info("found new field to write", "vaultField", vaultField)
 			data[vaultField] = secret
 			writeBack = true
 		case data[vaultField] == secret:
-			h.logger.Info("Skipping field, no update required", "vaultField", vaultField)
+			h.logger.Info("skipping field, no update required", "vaultField", vaultField)
 		case binding.Spec.ForceApply == true:
 			data[vaultField] = secret
 			writeBack = true
 		default:
-			h.logger.Info("Skipping field, it already exists in vault and force apply is disabled", "vaultField", vaultField)
+			h.logger.Info("skipping field, it already exists in vault and force apply is disabled", "vaultField", vaultField)
 		}
 	}
 

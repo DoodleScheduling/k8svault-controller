@@ -28,6 +28,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
@@ -54,6 +55,8 @@ var (
 	probeAddr               = ":9557"
 	enableLeaderElection    = true
 	leaderElectionNamespace string
+	namespaces              = ""
+	concurrent              = 4
 )
 
 func main() {
@@ -64,6 +67,10 @@ func main() {
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.StringVar(&leaderElectionNamespace, "leader-election-namespace", "",
 		"Specify a different leader election namespace. It will use the one where the controller is deployed by default.")
+	flag.StringVar(&namespaces, "namespaces", "",
+		"The controller listens by default for all namespaces. This may be limited to a comma delimted list of dedicated namespaces.")
+	flag.IntVar(&concurrent, "concurrent", 4,
+		"The number of concurrent reconcile workers. By default this is 4.")
 
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
@@ -82,7 +89,7 @@ func main() {
 	viper.SetEnvKeyReplacer(replacer)
 	viper.AutomaticEnv()
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	opts := ctrl.Options{
 		Scheme:                  scheme,
 		MetricsBindAddress:      viper.GetString("metrics-addr"),
 		HealthProbeBindAddress:  viper.GetString("probe-addr"),
@@ -90,7 +97,17 @@ func main() {
 		LeaderElection:          viper.GetBool("enable-leader-election"),
 		LeaderElectionNamespace: viper.GetString("leader-election-namespace"),
 		LeaderElectionID:        "1d602b51.doodle.com",
-	})
+	}
+
+	ns := strings.Split(viper.GetString("namespaces"), ",")
+	if len(ns) > 0 && ns[0] != "" {
+		opts.NewCache = cache.MultiNamespacedCacheBuilder(ns)
+		setupLog.Info("watching dedicated namespaces", "namespaces", ns)
+	} else {
+		setupLog.Info("watching all namespaces")
+	}
+
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), opts)
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
@@ -110,13 +127,24 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.VaultBindingReconciler{
+	vbReconciler := &controllers.VaultBindingReconciler{
 		Client:   mgr.GetClient(),
 		Log:      ctrl.Log.WithName("controllers").WithName("VaultBinding"),
 		Scheme:   mgr.GetScheme(),
 		Recorder: mgr.GetEventRecorderFor("VaultBinding"),
-	}).SetupWithManager(mgr); err != nil {
+	}
+	if err = vbReconciler.SetupWithManager(mgr, controllers.VaultBindingReconcilerOptions{MaxConcurrentReconciles: viper.GetInt("concurrent")}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "VaultBinding")
+		os.Exit(1)
+	}
+
+	if err = (&controllers.SecretReconciler{
+		Client:       mgr.GetClient(),
+		VBReconciler: vbReconciler,
+		Log:          ctrl.Log.WithName("controllers").WithName("Secret"),
+		Scheme:       mgr.GetScheme(),
+	}).SetupWithManager(mgr, controllers.SecretReconcilerOptions{MaxConcurrentReconciles: viper.GetInt("concurrent")}); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Secret")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

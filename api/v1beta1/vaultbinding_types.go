@@ -24,33 +24,85 @@ import (
 
 // VaultBindingSpec defines the desired state of VaultBinding
 type VaultBindingSpec struct {
-	Address    string                  `json:"address,omitempty"`
-	Path       string                  `json:"path,omitempty"`
-	ForceApply bool                    `json:"forceApply,omitempty"`
-	Fields     []FieldMapping          `json:"fields,omitempty"`
-	Secret     *corev1.SecretReference `json:"secret,omitempty"`
-	TLSConfig  VaultTLSSpec            `json:"tlsConfig,omitempty"`
-	Auth       VaultAuthSpec           `json:"auth,omitempty"`
+	// The http URL for the vault server
+	// By default the global VAULT_ADDRESS gets used.
+	// +optional
+	Address string `json:"address,omitempty"`
+
+	// The vault path, for example: /secret/myapp
+	// +required
+	Path string `json:"path"`
+
+	// By default existing matching secrets in vault do not get overwritten
+	// +optional
+	ForceApply bool `json:"forceApply"`
+
+	// Define the secrets which must be mapped to vault
+	// +optional
+	Fields []FieldMapping `json:"fields"`
+
+	// The kubernetes secret the VaultBinding is referring to
+	// +required
+	Secret *corev1.SecretReference `json:"secret"`
+
+	// Vault TLS configuration
+	// +optional
+	TLSConfig VaultTLSSpec `json:"tlsConfig"`
+
+	// Vault authentication parameters
+	// +optional
+	Auth VaultAuthSpec `json:"auth,omitempty"`
 }
 
+// FieldMapping maps a secret field to the vault path
 type FieldMapping struct {
-	Name   string `json:"name,omitempty"`
+	// Name is the kubernetes secret field name
+	// +required
+	Name string `json:"name"`
+
+	// Rename is no required. Hovever it may be used to rewrite the field name
+	// +optional
 	Rename string `json:"rename,omitempty"`
 }
 
+// VaultAuthSpec is the confuguration for vault authentication which by default
+// is kubernetes auth (And the only supported one in the current state)
 type VaultAuthSpec struct {
-	Type      string `json:"type,omitempty"`
+	// Type is by default kubernetes authentication. The vault needs to be equipped with
+	// the kubernetes auth method. Currently only kubernetes is supported.
+	// +optional
+	Type string `json:"type,omitempty"`
+
+	// TokenPath allows to use a different token path used for kubernetes authentication.
+	// +optional
 	TokenPath string `json:"tokenPath,omitempty"`
-	Role      string `json:"role,omitempty"`
+
+	// Role is used to map the kubernetes serviceAccount to a vault role.
+	// A default VAULT_ROLE might be set for the controller. If neither is set
+	// the VaultBinding can not authenticate.
+	// +optional
+	Role string `json:"role,omitempty"`
 }
 
+// VaultTLSSpec Vault TLS options
 type VaultTLSSpec struct {
-	CACert     string `json:"caCert,omitempty"`
-	CAPath     string `json:"caPath,omitempty"`
+	// +optional
+	CACert string `json:"caCert,omitempty"`
+
+	// +optional
+	CAPath string `json:"caPath,omitempty"`
+
+	// +optional
 	ClientCert string `json:"clientCert,omitempty"`
-	ClientKey  string `json:"clientKey,omitempty"`
+
+	// +optional
+	ClientKey string `json:"clientKey,omitempty"`
+
+	// +optional
 	ServerName string `json:"serverName,omitempty"`
-	Insecure   bool   `json:"insecure,omitempty"`
+
+	// +optional
+	Insecure bool `json:"insecure,omitempty"`
 }
 
 // VaultBindingStatus defines the observed state of VaultBinding
@@ -58,27 +110,21 @@ type VaultBindingStatus struct {
 	// Failures is the number of failures occured while reconciling
 	Failures int64 `json:"failures,omitempty"`
 
-	// ObservedGeneration is the last observed generation.
-	// +optional
-	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
-
 	// Conditions holds the conditions for the VaultBinding.
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-	// LastAppliedRevision is the revision of the last successfully applied source.
-	// +optional
-	LastAppliedRevision string `json:"lastAppliedRevision,omitempty"`
-
-	// LastAttemptedRevision is the revision of the last reconciliation attempt.
-	// +optional
-	LastAttemptedRevision string `json:"lastAttemptedRevision,omitempty"`
-
+	// Vault Status (not implemented yet)
 	Vault VaultBindingVaultStatus `json:",inline"`
 }
 
+// Status conditions
 const (
-	BoundCondition              = "Bound"
+	BoundCondition = "Bound"
+)
+
+// Status reasons
+const (
 	VaultConnectionFailedReason = "VaultConnectionFailed"
 	VaultUpdateFailedReason     = "VaultUpdateFailed"
 	VaultUpdateSuccessfulReason = "VaultUpdateSuccessful"

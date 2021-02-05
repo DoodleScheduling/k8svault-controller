@@ -95,7 +95,8 @@ And existing ones with matching fields will only be overwritten if `spec.forceAp
 
 ## Limitations
 
-The controller only supports [kubernetes authentication method](https://www.vaultproject.io/docs/auth/kubernetes) for now.
+The controller only supports [Kubernetes authentication method](https://www.vaultproject.io/docs/auth/kubernetes) for now.
+Currently there is no garbage collection implemented, meaning all the things created in vault are not removed if the binding gets deleted.
 
 ## Configure the controller
 
