@@ -52,7 +52,7 @@ func init() {
 
 var (
 	metricsAddr             = ":9556"
-	probeAddr               = ":9557"
+	probesAddr              = ":9557"
 	enableLeaderElection    = true
 	leaderElectionNamespace string
 	namespaces              = ""
@@ -61,7 +61,7 @@ var (
 
 func main() {
 	flag.StringVar(&metricsAddr, "metrics-addr", ":9556", "The address of the metric endpoint binds to.")
-	flag.StringVar(&probeAddr, "probe-addr", ":9557", "The address of the probe listener.")
+	flag.StringVar(&probesAddr, "probe-addr", ":9557", "The address of the probe endpoints bind to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", true,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
@@ -138,15 +138,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.SecretReconciler{
-		Client:       mgr.GetClient(),
-		VBReconciler: vbReconciler,
-		Log:          ctrl.Log.WithName("controllers").WithName("Secret"),
-		Scheme:       mgr.GetScheme(),
-	}).SetupWithManager(mgr, controllers.SecretReconcilerOptions{MaxConcurrentReconciles: viper.GetInt("concurrent")}); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Secret")
-		os.Exit(1)
-	}
 	// +kubebuilder:scaffold:builder
 
 	setupLog.Info("starting manager")
