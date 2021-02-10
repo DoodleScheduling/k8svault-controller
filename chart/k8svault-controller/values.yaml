@@ -55,14 +55,17 @@ replicas: 1
 
 resources: {}
 # limits:
-#   cpu: 250m
-#   memory: 192Mi
+#   cpu: 50m
+#   memory: 50Mi
 # requests:
-#   cpu: 100m
-#   memory: 128Mi
+#   cpu: 20m
+#   memory: 30Mi
 
 # Extra environment variables that will be passed into the exporter pod
 env: {}
+# env:
+#   NAMESPACES: default
+#   CONCURRENT: "10"
 
 ## The name of a secret in the same kubernetes namespace which contain values to be added to the environment
 ## This can be useful for auth tokens, etc
