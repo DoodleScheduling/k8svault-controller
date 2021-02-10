@@ -1,6 +1,6 @@
 module github.com/DoodleScheduling/k8svault-controller
 
-go 1.13
+go 1.15
 
 require (
 	github.com/alexkohler/nakedret v1.0.0 // indirect
