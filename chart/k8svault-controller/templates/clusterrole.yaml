@@ -11,17 +11,18 @@ metadata:
   annotations:
     {{- toYaml .Values.annotations | nindent 4 }}
 rules:
-- apiGroups: ['v1']
+- apiGroups:
+  - ""
   resources:
-    - "secrets"
+    - secrets
   verbs:
     - get
     - list
     - watch
 - apiGroups:
-  - ""
+  - "infra.doodle.com"
   resources:
-  - VaultBindings
+  - vaultbindings
   verbs:
   - create
   - delete
@@ -31,11 +32,23 @@ rules:
   - update
   - watch
 - apiGroups:
-  - ""
+  - "infra.doodle.com"
   resources:
-  - VaultBindings/status
+  - vaultbindings/status
   verbs:
   - get
   - patch
   - update
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 {{- end }}

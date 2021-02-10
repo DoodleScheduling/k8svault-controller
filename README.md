@@ -115,6 +115,22 @@ Available env variables:
 | `CONCURRENT` | The number of concurrent reconcile workers.  | `4` |
 | `VAULT_ADDR` | Fallback vault address if no vault address is set in the VaultBinding. | `http://localhost:8200` |
 | `VAULT_TOKEN_PATH` | Specify different path for the kubernetes ServiceAccount token file. Also acts as fallback and might be set in the VaultBinding as well. | `/var/run/secrets/kubernetes.io/serviceaccount/token` |
-| `VAULT_ROLE` | Fallback vault authentication role used for authentication. Used if no role was specified in the VaultBinding. | `/var/run/secrets/kubernetes.io/serviceaccount/token` |
+| `VAULT_ROLE` | Fallback vault authentication role used for authentication. Used if no role was specified in the VaultBinding. | `k8svault-controller` |
 
+## Vault requirements
+Vault needs to be configured to allow authenticate via kubernetes auth. A auth role must exists which maps against
+the serviceAccount of this controller.
+**Ensure** that the namespace and serviceaccount both matches the serviceaccount where this controller gets deployed.
 
+Example rule:
+```
+- bound_service_account_names: k8svault-controller
+  bound_service_account_namespaces: default
+  name: k8svault-controller
+  policies: allow_secrets
+  ttl: 1h
+``
+
+Best practice is to create one for the controller on each vault you would like to manage secrets.
+The auth role should be called `k8svault-controller`) which gets used by default in this controller. However you may also change the default one using the env `VAULT_ROLE`
+or change it individually in each VaultBinding.

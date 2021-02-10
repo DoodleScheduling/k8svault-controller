@@ -107,9 +107,6 @@ type VaultTLSSpec struct {
 
 // VaultBindingStatus defines the observed state of VaultBinding
 type VaultBindingStatus struct {
-	// Failures is the number of failures occured while reconciling
-	Failures int64 `json:"failures,omitempty"`
-
 	// Conditions holds the conditions for the VaultBinding.
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
@@ -147,16 +144,14 @@ func setResourceCondition(binding *VaultBinding, condition string, status metav1
 }
 
 // VaultBindingNotBound de
-func VaultBindingNotBound(binding *VaultBinding, reason, message string) *VaultBinding {
-	setResourceCondition(binding, BoundCondition, metav1.ConditionFalse, reason, message)
-	binding.Status.Failures++
+func VaultBindingNotBound(binding VaultBinding, reason, message string) VaultBinding {
+	setResourceCondition(&binding, BoundCondition, metav1.ConditionFalse, reason, message)
 	return binding
 }
 
 // VaultBindingBound de
-func VaultBindingBound(binding *VaultBinding, reason, message string) *VaultBinding {
-	setResourceCondition(binding, BoundCondition, metav1.ConditionTrue, reason, message)
-	binding.Status.Failures = 0
+func VaultBindingBound(binding VaultBinding, reason, message string) VaultBinding {
+	setResourceCondition(&binding, BoundCondition, metav1.ConditionTrue, reason, message)
 	return binding
 }
 

@@ -45,7 +45,7 @@ func NewKubernetesAuthMethod(conf *vault.AuthConfig) (vault.AuthMethod, error) {
 	}
 
 	k := &kubernetesMethod{
-		logger:    conf.Logger,
+		logger:    conf.Logger.WithValues("authMethod", "kubernetes"),
 		mountPath: conf.MountPath,
 	}
 
@@ -74,7 +74,7 @@ func NewKubernetesAuthMethod(conf *vault.AuthConfig) (vault.AuthMethod, error) {
 }
 
 func (k *kubernetesMethod) Authenticate(ctx context.Context, client *vaultapi.Client) (string, http.Header, map[string]interface{}, error) {
-	k.logger.Info("beginning authentication")
+	k.logger.Info("beginning authentication", "role", k.role, "tokenPath", k.tokenPath)
 
 	jwtString, err := k.readJWT()
 	if err != nil {

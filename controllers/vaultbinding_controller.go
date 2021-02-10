@@ -114,9 +114,9 @@ func (r *VaultBindingReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	logger.Info("reconciling VaultBinding")
 
 	// Fetch the VaultBinding instance
-	binding := &v1beta1.VaultBinding{}
+	binding := v1beta1.VaultBinding{}
 
-	err := r.Client.Get(ctx, req.NamespacedName, binding)
+	err := r.Client.Get(ctx, req.NamespacedName, &binding)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -128,19 +128,18 @@ func (r *VaultBindingReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return reconcile.Result{}, err
 	}
 
-	binding, result, err := r.reconcile(ctx, binding, logger)
+	binding, result, reconcileErr := r.reconcile(ctx, binding, logger)
 
 	// Update status after reconciliation.
-	if err = r.patchStatus(ctx, binding); err != nil {
+	if err = r.patchStatus(ctx, &binding); err != nil {
 		log.Error(err, "unable to update status after reconciliation")
 		return ctrl.Result{Requeue: true}, err
 	}
 
-	// Return if VaultBinding does not have necessary annotation
-	return result, nil
+	return result, reconcileErr
 }
 
-func (r *VaultBindingReconciler) reconcile(ctx context.Context, binding *v1beta1.VaultBinding, logger logr.Logger) (*v1beta1.VaultBinding, ctrl.Result, error) {
+func (r *VaultBindingReconciler) reconcile(ctx context.Context, binding v1beta1.VaultBinding, logger logr.Logger) (v1beta1.VaultBinding, ctrl.Result, error) {
 	// Fetch referencing secret
 	secret := &corev1.Secret{}
 	secretName := types.NamespacedName{
@@ -152,35 +151,31 @@ func (r *VaultBindingReconciler) reconcile(ctx context.Context, binding *v1beta1
 	// Failed to fetch referenced secret, requeue immediately
 	if err != nil {
 		msg := fmt.Sprintf("Referencing secret was not found: %s", err.Error())
-		r.Recorder.Event(binding, "Normal", "error", msg)
+		r.Recorder.Event(&binding, "Normal", "error", msg)
 		return v1beta1.VaultBindingNotBound(binding, v1beta1.SecretNotFoundReason, msg), ctrl.Result{Requeue: true}, err
 	}
 
-	h, err := FromBinding(binding, logger)
+	h, err := FromBinding(&binding, logger)
 
 	// Failed to setup vault client, requeue immediately
 	if err != nil {
 		msg := fmt.Sprintf("Connection to vault failed: %s", err.Error())
-		r.Recorder.Event(binding, "Normal", "error", msg)
+		r.Recorder.Event(&binding, "Normal", "error", msg)
 		return v1beta1.VaultBindingNotBound(binding, v1beta1.VaultConnectionFailedReason, msg), ctrl.Result{Requeue: true}, err
 	}
 
-	needUpdate, err := h.ApplySecret(binding, secret)
+	_, err = h.ApplySecret(&binding, secret)
 
 	// Failed to setup vault client, requeue immediately
 	if err != nil {
 		msg := fmt.Sprintf("Update vault failed: %s", err.Error())
-		r.Recorder.Event(binding, "Normal", "error", msg)
+		r.Recorder.Event(&binding, "Normal", "error", msg)
 		return v1beta1.VaultBindingNotBound(binding, v1beta1.VaultUpdateFailedReason, msg), ctrl.Result{Requeue: true}, err
 	}
 
-	if needUpdate == true {
-		msg := "Vault fields successfully bound"
-		r.Recorder.Event(binding, "Normal", "info", msg)
-		return v1beta1.VaultBindingBound(binding, v1beta1.VaultUpdateSuccessfulReason, msg), ctrl.Result{}, nil
-	}
-
-	return binding, ctrl.Result{}, err
+	msg := "Vault fields successfully bound"
+	r.Recorder.Event(&binding, "Normal", "info", msg)
+	return v1beta1.VaultBindingBound(binding, v1beta1.VaultUpdateSuccessfulReason, msg), ctrl.Result{}, err
 }
 
 func (r *VaultBindingReconciler) patchStatus(ctx context.Context, binding *v1beta1.VaultBinding) error {

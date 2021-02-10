@@ -14,6 +14,11 @@ import (
 	"github.com/DoodleScheduling/k8svault-controller/controllers/vault/kubernetes"
 )
 
+const (
+	// DefaultAuthRole is the vault auth role name
+	DefaultAuthRole = "k8svault-controller"
+)
+
 // Common errors
 var (
 	ErrVaultAddrNotFound          = errors.New("Neither vault address nor a default vault address found")
@@ -52,9 +57,14 @@ func setupAuth(h *VaultHandler, binding *v1beta1.VaultBinding) error {
 // Wrapper around vault kubernetes auth (taken from vault agent)
 // Injects env variables if not set on the binding
 func authKubernetes(h *VaultHandler, binding *v1beta1.VaultBinding) (vault.AuthMethod, error) {
-	role := binding.Spec.Auth.Role
-	if role == "" {
+	var role string
+	switch {
+	case binding.Spec.Auth.Role != "":
+		role = binding.Spec.Auth.Role
+	case os.Getenv("VAULT_ROLE") != "":
 		role = os.Getenv("VAULT_ROLE")
+	default:
+		role = DefaultAuthRole
 	}
 
 	tokenPath := binding.Spec.Auth.TokenPath
