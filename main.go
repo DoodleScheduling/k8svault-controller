@@ -144,7 +144,7 @@ func main() {
 		Scheme:   mgr.GetScheme(),
 		Recorder: mgr.GetEventRecorderFor("VaultMirror"),
 	}
-	if err = vmReconciler.SetupWithManager(mgr, controllers.VaultBindingReconcilerOptions{MaxConcurrentReconciles: viper.GetInt("concurrent")}); err != nil {
+	if err = vmReconciler.SetupWithManager(mgr, controllers.VaultMirrorReconcilerOptions{MaxConcurrentReconciles: viper.GetInt("concurrent")}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "VaultMirror")
 		os.Exit(1)
 	}
