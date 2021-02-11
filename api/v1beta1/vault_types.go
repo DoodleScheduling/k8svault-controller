@@ -15,8 +15,29 @@ const (
 	VaultConnectionFailedReason = "VaultConnectionFailed"
 	VaultUpdateFailedReason     = "VaultUpdateFailed"
 	VaultUpdateSuccessfulReason = "VaultUpdateSuccessful"
+	VaultReadSourceFailedReason = "VaultReadSourceFailed"
 	SecretNotFoundReason        = "SecretNotFoundFailed"
 )
+
+// VaultSpec defines how to connect to a vault
+type VaultSpec struct {
+	// The http URL for the vault server
+	// By default the global VAULT_ADDRESS gets used.
+	// +optional
+	Address string `json:"address,omitempty"`
+
+	// Vault TLS configuration
+	// +optional
+	TLSConfig VaultTLSSpec `json:"tlsConfig"`
+
+	// Vault authentication parameters
+	// +optional
+	Auth VaultAuthSpec `json:"auth,omitempty"`
+
+	// The vault path, for example: /secret/myapp
+	// +required
+	Path string `json:"path"`
+}
 
 // VaultAuthSpec is the confuguration for vault authentication which by default
 // is kubernetes auth (And the only supported one in the current state)
@@ -70,13 +91,13 @@ type FieldMapping struct {
 }
 
 // ConditionalResource is a resource with conditions
-type ConditionalResource interface {
+type conditionalResource interface {
 	GetStatusConditions() *[]metav1.Condition
 }
 
 // setResourceCondition sets the given condition with the given status,
 // reason and message on a resource.
-func setResourceCondition(resource ConditionalResource, condition string, status metav1.ConditionStatus, reason, message string) {
+func setResourceCondition(resource conditionalResource, condition string, status metav1.ConditionStatus, reason, message string) {
 	conditions := resource.GetStatusConditions()
 
 	newCondition := metav1.Condition{

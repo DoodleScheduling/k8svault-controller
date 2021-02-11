@@ -20,22 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// VaultSpec defines how to connect to a vault
-type VaultSpec struct {
-	// The http URL for the vault server
-	// By default the global VAULT_ADDRESS gets used.
-	// +optional
-	Address string `json:"address,omitempty"`
-
-	// Vault TLS configuration
-	// +optional
-	TLSConfig VaultTLSSpec `json:"tlsConfig"`
-
-	// Vault authentication parameters
-	// +optional
-	Auth VaultAuthSpec `json:"auth,omitempty"`
-}
-
 // VaultMirrorSpec defines the desired state of VaultMirror
 type VaultMirrorSpec struct {
 	// Source vault server to mirror
@@ -46,11 +30,7 @@ type VaultMirrorSpec struct {
 	// +required
 	Destination *VaultSpec `json:"destination"`
 
-	// The vault path, for example: /secret/myapp
-	// +required
-	Path string `json:"path"`
-
-	// By default existing matching secrets in vault do not get overwritten
+	// By default existing matching fields in vault do not get overwritten
 	// +optional
 	ForceApply bool `json:"forceApply"`
 
@@ -67,6 +47,18 @@ type VaultMirrorStatus struct {
 
 	// Vault Status (not implemented yet)
 	Vault VaultMirrorVaultStatus `json:",inline"`
+}
+
+func (in *VaultMirrorSpec) IsForceApply() bool {
+	return in.ForceApply
+}
+
+func (in *VaultMirrorSpec) GetPath() string {
+	return in.Destination.Path
+}
+
+func (in *VaultMirrorSpec) GetFieldMapping() []FieldMapping {
+	return in.Fields
 }
 
 // VaultMirrorNotBound de

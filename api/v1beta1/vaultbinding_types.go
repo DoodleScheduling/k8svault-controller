@@ -23,34 +23,31 @@ import (
 
 // VaultBindingSpec defines the desired state of VaultBinding
 type VaultBindingSpec struct {
-	// The http URL for the vault server
-	// By default the global VAULT_ADDRESS gets used.
-	// +optional
-	Address string `json:"address,omitempty"`
-
-	// The vault path, for example: /secret/myapp
-	// +required
-	Path string `json:"path"`
-
-	// By default existing matching secrets in vault do not get overwritten
-	// +optional
-	ForceApply bool `json:"forceApply"`
+	*VaultSpec `json:",inline"`
 
 	// Define the secrets which must be mapped to vault
 	// +optional
 	Fields []FieldMapping `json:"fields"`
 
+	// By default existing matching fields in vault do not get overwritten
+	// +optional
+	ForceApply bool `json:"forceApply"`
+
 	// The kubernetes secret the VaultBinding is referring to
 	// +required
 	Secret *corev1.SecretReference `json:"secret"`
+}
 
-	// Vault TLS configuration
-	// +optional
-	TLSConfig VaultTLSSpec `json:"tlsConfig"`
+func (in *VaultBindingSpec) IsForceApply() bool {
+	return in.ForceApply
+}
 
-	// Vault authentication parameters
-	// +optional
-	Auth VaultAuthSpec `json:"auth,omitempty"`
+func (in *VaultBindingSpec) GetPath() string {
+	return in.Path
+}
+
+func (in *VaultBindingSpec) GetFieldMapping() []FieldMapping {
+	return in.Fields
 }
 
 // VaultBindingStatus defines the observed state of VaultBinding

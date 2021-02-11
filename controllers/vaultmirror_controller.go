@@ -23,7 +23,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/log"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -64,9 +63,9 @@ func (r *VaultMirrorReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	logger.Info("reconciling VaultMirror")
 
 	// Fetch the VaultMirror instance
-	binding := v1beta1.VaultMirror{}
+	mirror := v1beta1.VaultMirror{}
 
-	err := r.Client.Get(ctx, req.NamespacedName, &binding)
+	err := r.Client.Get(ctx, req.NamespacedName, &mirror)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -78,10 +77,10 @@ func (r *VaultMirrorReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return reconcile.Result{}, err
 	}
 
-	binding, result, reconcileErr := r.reconcile(ctx, binding, logger)
+	mirror, result, reconcileErr := r.reconcile(ctx, mirror, logger)
 
 	// Update status after reconciliation.
-	if err = r.patchStatus(ctx, &binding); err != nil {
+	if err = r.patchStatus(ctx, &mirror); err != nil {
 		log.Error(err, "unable to update status after reconciliation")
 		return ctrl.Result{Requeue: true}, err
 	}
@@ -89,44 +88,54 @@ func (r *VaultMirrorReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	return result, reconcileErr
 }
 
-func (r *VaultMirrorReconciler) reconcile(ctx context.Context, binding v1beta1.VaultMirror, logger logr.Logger) (v1beta1.VaultMirror, ctrl.Result, error) {
-	h, err := FromBinding(&binding, logger)
+func (r *VaultMirrorReconciler) reconcile(ctx context.Context, mirror v1beta1.VaultMirror, logger logr.Logger) (v1beta1.VaultMirror, ctrl.Result, error) {
+	srcHandler, err := NewHandler(mirror.Spec.Source, logger)
 
 	// Failed to setup vault client, requeue immediately
 	if err != nil {
-		msg := fmt.Sprintf("Connection to vault failed: %s", err.Error())
-		r.Recorder.Event(&binding, "Normal", "error", msg)
-		return v1beta1.VaultMirrorNotBound(binding, v1beta1.VaultConnectionFailedReason, msg), ctrl.Result{Requeue: true}, err
+		msg := fmt.Sprintf("Connection to source vault failed: %s", err.Error())
+		r.Recorder.Event(&mirror, "Normal", "error", msg)
+		return v1beta1.VaultMirrorNotBound(mirror, v1beta1.VaultConnectionFailedReason, msg), ctrl.Result{Requeue: true}, err
 	}
 
-	_, err = h.ApplySecret(&binding, secret)
+	dstHandler, err := NewHandler(mirror.Spec.Destination, logger)
+
+	// Failed to setup vault client, requeue immediately
+	if err != nil {
+		msg := fmt.Sprintf("Connection to destination vault failed: %s", err.Error())
+		r.Recorder.Event(&mirror, "Normal", "error", msg)
+		return v1beta1.VaultMirrorNotBound(mirror, v1beta1.VaultConnectionFailedReason, msg), ctrl.Result{Requeue: true}, err
+	}
+
+	data, err := srcHandler.Read(mirror.Spec.Source.Path)
+
+	// Failed to read source vault, requeue immediately
+	if err != nil {
+		msg := fmt.Sprintf("Failed to read path from source vault: %s", err.Error())
+		r.Recorder.Event(&mirror, "Normal", "error", msg)
+		return v1beta1.VaultMirrorNotBound(mirror, v1beta1.VaultReadSourceFailedReason, msg), ctrl.Result{Requeue: true}, err
+	}
+
+	_, err = dstHandler.Write(&mirror.Spec, data)
 
 	// Failed to setup vault client, requeue immediately
 	if err != nil {
 		msg := fmt.Sprintf("Update vault failed: %s", err.Error())
-		r.Recorder.Event(&binding, "Normal", "error", msg)
-		return v1beta1.VaultMirrorNotBound(binding, v1beta1.VaultUpdateFailedReason, msg), ctrl.Result{Requeue: true}, err
+		r.Recorder.Event(&mirror, "Normal", "error", msg)
+		return v1beta1.VaultMirrorNotBound(mirror, v1beta1.VaultUpdateFailedReason, msg), ctrl.Result{Requeue: true}, err
 	}
 
 	msg := "Vault fields successfully bound"
-	r.Recorder.Event(&binding, "Normal", "info", msg)
-	return v1beta1.VaultMirrorBound(binding, v1beta1.VaultUpdateSuccessfulReason, msg), ctrl.Result{}, err
+	r.Recorder.Event(&mirror, "Normal", "info", msg)
+	return v1beta1.VaultMirrorBound(mirror, v1beta1.VaultUpdateSuccessfulReason, msg), ctrl.Result{}, err
 }
 
-func (r *VaultMirrorReconciler) patchStatus(ctx context.Context, binding *v1beta1.VaultMirror) error {
-	key := client.ObjectKeyFromObject(binding)
+func (r *VaultMirrorReconciler) patchStatus(ctx context.Context, mirror *v1beta1.VaultMirror) error {
+	key := client.ObjectKeyFromObject(mirror)
 	latest := &v1beta1.VaultMirror{}
 	if err := r.Client.Get(ctx, key, latest); err != nil {
 		return err
 	}
 
-	return r.Client.Status().Patch(ctx, binding, client.MergeFrom(latest))
-}
-
-// objectKey returns client.ObjectKey for the object.
-func objectKey(object metav1.Object) client.ObjectKey {
-	return client.ObjectKey{
-		Namespace: object.GetNamespace(),
-		Name:      object.GetName(),
-	}
+	return r.Client.Status().Patch(ctx, mirror, client.MergeFrom(latest))
 }

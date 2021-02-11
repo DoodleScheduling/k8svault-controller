@@ -155,7 +155,7 @@ func (r *VaultBindingReconciler) reconcile(ctx context.Context, binding v1beta1.
 		return v1beta1.VaultBindingNotBound(binding, v1beta1.SecretNotFoundReason, msg), ctrl.Result{Requeue: true}, err
 	}
 
-	h, err := FromBinding(&binding, logger)
+	h, err := NewHandler(binding.Spec.VaultSpec, logger)
 
 	// Failed to setup vault client, requeue immediately
 	if err != nil {
@@ -164,7 +164,13 @@ func (r *VaultBindingReconciler) reconcile(ctx context.Context, binding v1beta1.
 		return v1beta1.VaultBindingNotBound(binding, v1beta1.VaultConnectionFailedReason, msg), ctrl.Result{Requeue: true}, err
 	}
 
-	_, err = h.ApplySecret(&binding, secret)
+	// Map k8s secret (convert to string, base64 devcode)
+	data := make(map[string]interface{})
+	for k, v := range secret.Data {
+		data[k] = string(v)
+	}
+
+	_, err = h.Write(&binding.Spec, data)
 
 	// Failed to setup vault client, requeue immediately
 	if err != nil {
