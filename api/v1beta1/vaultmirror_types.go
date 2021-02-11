@@ -17,16 +17,34 @@ limitations under the License.
 package v1beta1
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// VaultBindingSpec defines the desired state of VaultBinding
-type VaultBindingSpec struct {
+// VaultSpec defines how to connect to a vault
+type VaultSpec struct {
 	// The http URL for the vault server
 	// By default the global VAULT_ADDRESS gets used.
 	// +optional
 	Address string `json:"address,omitempty"`
+
+	// Vault TLS configuration
+	// +optional
+	TLSConfig VaultTLSSpec `json:"tlsConfig"`
+
+	// Vault authentication parameters
+	// +optional
+	Auth VaultAuthSpec `json:"auth,omitempty"`
+}
+
+// VaultMirrorSpec defines the desired state of VaultMirror
+type VaultMirrorSpec struct {
+	// Source vault server to mirror
+	// +required
+	Source *VaultSpec `json:"source"`
+
+	// Destination vault server
+	// +required
+	Destination *VaultSpec `json:"destination"`
 
 	// The vault path, for example: /secret/myapp
 	// +required
@@ -39,48 +57,36 @@ type VaultBindingSpec struct {
 	// Define the secrets which must be mapped to vault
 	// +optional
 	Fields []FieldMapping `json:"fields"`
-
-	// The kubernetes secret the VaultBinding is referring to
-	// +required
-	Secret *corev1.SecretReference `json:"secret"`
-
-	// Vault TLS configuration
-	// +optional
-	TLSConfig VaultTLSSpec `json:"tlsConfig"`
-
-	// Vault authentication parameters
-	// +optional
-	Auth VaultAuthSpec `json:"auth,omitempty"`
 }
 
-// VaultBindingStatus defines the observed state of VaultBinding
-type VaultBindingStatus struct {
-	// Conditions holds the conditions for the VaultBinding.
+// VaultMirrorStatus defines the observed state of VaultMirror
+type VaultMirrorStatus struct {
+	// Conditions holds the conditions for the VaultMirror.
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	// Vault Status (not implemented yet)
-	Vault VaultBindingVaultStatus `json:",inline"`
+	Vault VaultMirrorVaultStatus `json:",inline"`
 }
 
-// VaultBindingNotBound de
-func VaultBindingNotBound(binding VaultBinding, reason, message string) VaultBinding {
-	setResourceCondition(&binding, BoundCondition, metav1.ConditionFalse, reason, message)
-	return binding
+// VaultMirrorNotBound de
+func VaultMirrorNotBound(mirror VaultMirror, reason, message string) VaultMirror {
+	setResourceCondition(&mirror, BoundCondition, metav1.ConditionFalse, reason, message)
+	return mirror
 }
 
-// VaultBindingBound de
-func VaultBindingBound(binding VaultBinding, reason, message string) VaultBinding {
-	setResourceCondition(&binding, BoundCondition, metav1.ConditionTrue, reason, message)
-	return binding
+// VaultMirrorBound de
+func VaultMirrorBound(mirror VaultMirror, reason, message string) VaultMirror {
+	setResourceCondition(&mirror, BoundCondition, metav1.ConditionTrue, reason, message)
+	return mirror
 }
 
 // GetStatusConditions returns a pointer to the Status.Conditions slice
-func (in *VaultBinding) GetStatusConditions() *[]metav1.Condition {
+func (in *VaultMirror) GetStatusConditions() *[]metav1.Condition {
 	return &in.Status.Conditions
 }
 
-type VaultBindingVaultStatus struct {
+type VaultMirrorVaultStatus struct {
 	Address string `json:"address,omitempty"`
 	Path    string `json:"path,omitempty"`
 	Fields  string `json:"fields,omitempty"`
@@ -93,24 +99,24 @@ type VaultBindingVaultStatus struct {
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Bound\")].message",description=""
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description=""
 
-// VaultBinding is the Schema for the vaultbindings API
-type VaultBinding struct {
+// VaultMirror is the Schema for the vaultmirrors API
+type VaultMirror struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   VaultBindingSpec   `json:"spec,omitempty"`
-	Status VaultBindingStatus `json:"status,omitempty"`
+	Spec   VaultMirrorSpec   `json:"spec,omitempty"`
+	Status VaultMirrorStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// VaultBindingList contains a list of VaultBinding
-type VaultBindingList struct {
+// VaultMirrorList contains a list of VaultMirror
+type VaultMirrorList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []VaultBinding `json:"items"`
+	Items           []VaultMirror `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&VaultBinding{}, &VaultBindingList{})
+	SchemeBuilder.Register(&VaultMirror{}, &VaultMirrorList{})
 }

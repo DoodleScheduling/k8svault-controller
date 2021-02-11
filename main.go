@@ -138,6 +138,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	vmReconciler := &controllers.VaultMirrorReconciler{
+		Client:   mgr.GetClient(),
+		Log:      ctrl.Log.WithName("controllers").WithName("VaultMirror"),
+		Scheme:   mgr.GetScheme(),
+		Recorder: mgr.GetEventRecorderFor("VaultMirror"),
+	}
+	if err = vmReconciler.SetupWithManager(mgr, controllers.VaultBindingReconcilerOptions{MaxConcurrentReconciles: viper.GetInt("concurrent")}); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "VaultMirror")
+		os.Exit(1)
+	}
+
 	// +kubebuilder:scaffold:builder
 
 	setupLog.Info("starting manager")

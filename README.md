@@ -43,6 +43,26 @@ spec:
     role: default
 ```
 
+
+apiVersion: infra.doodle.com/v1beta1
+kind: VaultMirror
+metadata:
+  name: my-secret
+  namespace: default
+spec:
+  source:
+    address: "staging-vault:8200"
+    path: "/secret/staging/devbox-master/myapp"
+  destination:
+    address: "vault:8200"
+    path: "/secret/env/myapp"    
+  forceApply: false
+  fields:
+  - name: password
+  - name: username
+    rename: root
+
+
 **Note**: The field named  `password` gets written with the same name while the `username` field gets created as `root` in vault.
 
 ## Specify TLS settings

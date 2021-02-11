@@ -98,7 +98,7 @@ func (r *VaultBindingReconciler) requestsForSecretChange(o client.Object) []reco
 
 	var reqs []reconcile.Request
 	for _, i := range list.Items {
-		r.Log.Info("referenced secret from a vaultbinding changed detected, reconcile binding", "namespac", i.GetNamespace(), "name", i.GetName())
+		r.Log.Info("referenced secret from a vaultbinding changed detected, reconcile binding", "namespace", i.GetNamespace(), "name", i.GetName())
 		reqs = append(reqs, reconcile.Request{NamespacedName: objectKey(&i)})
 	}
 
