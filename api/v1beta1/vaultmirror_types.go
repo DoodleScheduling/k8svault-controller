@@ -30,6 +30,10 @@ type VaultMirrorSpec struct {
 	// +required
 	Destination *VaultSpec `json:"destination"`
 
+	// Vault does not provide a watch api, therefore the controller may reconcile a mirror in a specified interval
+	// +optional
+	Interval *metav1.Duration `json:"interval"`
+
 	// By default existing matching fields in vault do not get overwritten
 	// +optional
 	ForceApply bool `json:"forceApply"`

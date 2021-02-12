@@ -36,7 +36,6 @@ import (
 // VaultMirror reconciles a VaultMirror object
 type VaultMirrorReconciler struct {
 	client.Client
-	indexer  client.FieldIndexer
 	Log      logr.Logger
 	Scheme   *runtime.Scheme
 	Recorder record.EventRecorder
@@ -54,8 +53,8 @@ func (r *VaultMirrorReconciler) SetupWithManager(mgr ctrl.Manager, opts VaultMir
 		Complete(r)
 }
 
-// +kubebuilder:rbac:groups=core,resources=VaultMirrors,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core,resources=VaultMirrors/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=infra.doodle.com,resources=VaultMirrors,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=infra.doodle.com,resources=VaultMirrors/status,verbs=get;update;patch
 
 // Reconcile VaultMirrors
 func (r *VaultMirrorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -127,7 +126,14 @@ func (r *VaultMirrorReconciler) reconcile(ctx context.Context, mirror v1beta1.Va
 
 	msg := "Vault fields successfully bound"
 	r.Recorder.Event(&mirror, "Normal", "info", msg)
-	return v1beta1.VaultMirrorBound(mirror, v1beta1.VaultUpdateSuccessfulReason, msg), ctrl.Result{}, err
+
+	// Reqeue only if an interval is specified
+	result := ctrl.Result{}
+	if mirror.Spec.Interval != nil {
+		result = ctrl.Result{RequeueAfter: mirror.Spec.Interval.Duration}
+	}
+
+	return v1beta1.VaultMirrorBound(mirror, v1beta1.VaultUpdateSuccessfulReason, msg), result, err
 }
 
 func (r *VaultMirrorReconciler) patchStatus(ctx context.Context, mirror *v1beta1.VaultMirror) error {

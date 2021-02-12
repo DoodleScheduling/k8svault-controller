@@ -255,6 +255,11 @@ func (in *VaultMirrorSpec) DeepCopyInto(out *VaultMirrorSpec) {
 		*out = new(VaultSpec)
 		**out = **in
 	}
+	if in.Interval != nil {
+		in, out := &in.Interval, &out.Interval
+		*out = new(metav1.Duration)
+		**out = **in
+	}
 	if in.Fields != nil {
 		in, out := &in.Fields, &out.Fields
 		*out = make([]FieldMapping, len(*in))

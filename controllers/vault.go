@@ -24,6 +24,7 @@ var (
 	ErrFieldNotAvailable   = errors.New("Source field to be mapped does not exist")
 	ErrUnsupportedAuthType = errors.New("Unsupported vault authentication")
 	ErrVaultConfig         = errors.New("Failed to setup default vault configuration")
+	ErrPathNotFound        = errors.New("Vault path not found")
 )
 
 // Setup vault client & authentication from binding
@@ -146,14 +147,24 @@ type VaultWriter interface {
 func (h *VaultHandler) Write(writer VaultWriter, data map[string]interface{}) (bool, error) {
 	var writeBack bool
 
-	// TODO Is there such a thing as locking the path so we don't overwrite fields which would be changed at the same time?
+	// Ignore error if there is no path at the destination
 	dstData, err := h.Read(writer.GetPath())
-	if err != nil {
+	if err != nil && err != ErrPathNotFound {
 		return writeBack, err
 	}
 
+	// If no field mapping is configured all fields get mapped with their source field name
+	mapping := writer.GetFieldMapping()
+	if len(mapping) == 0 {
+		for k, _ := range data {
+			mapping = append(mapping, v1beta1.FieldMapping{
+				Name: k,
+			})
+		}
+	}
+
 	// Loop through all mapping field and apply to the vault path data
-	for _, field := range writer.GetFieldMapping() {
+	for _, field := range mapping {
 		srcField := field.Name
 		dstField := srcField
 		if field.Rename != "" {
@@ -204,9 +215,9 @@ func (h *VaultHandler) Read(path string) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	// Return empty map if no data exists
+	// Return empty map and PathNotFound error
 	if s == nil || s.Data == nil {
-		return make(map[string]interface{}), nil
+		return make(map[string]interface{}), ErrPathNotFound
 	}
 
 	return s.Data, nil

@@ -47,7 +47,6 @@ const (
 // VaultBinding reconciles a VaultBinding object
 type VaultBindingReconciler struct {
 	client.Client
-	indexer  client.FieldIndexer
 	Log      logr.Logger
 	Scheme   *runtime.Scheme
 	Recorder record.EventRecorder
@@ -105,8 +104,8 @@ func (r *VaultBindingReconciler) requestsForSecretChange(o client.Object) []reco
 	return reqs
 }
 
-// +kubebuilder:rbac:groups=core,resources=VaultBindings,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core,resources=VaultBindings/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=infra.doodle.com,resources=VaultBindings,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=infra.doodle.com,resources=VaultBindings/status,verbs=get;update;patch
 
 // Reconcile VaultBindings
 func (r *VaultBindingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {

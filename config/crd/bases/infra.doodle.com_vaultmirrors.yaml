@@ -115,6 +115,10 @@ spec:
               description: By default existing matching fields in vault do not get
                 overwritten
               type: boolean
+            interval:
+              description: Vault does not provide a watch api, therefore the controller
+                may reconcile a mirror in a specified interval
+              type: string
             source:
               description: Source vault server to mirror
               properties:

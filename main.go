@@ -78,7 +78,6 @@ func main() {
 
 	// Import flags into viper and bind them to env vars
 	// flags are converted to upper-case, - is replaced with _
-	// VaultBinding-length -> VaultBinding_LENGTH
 	err := viper.BindPFlags(pflag.CommandLine)
 	if err != nil {
 		setupLog.Error(err, "Failed parsing command line arguments")

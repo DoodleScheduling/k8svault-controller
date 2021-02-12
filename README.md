@@ -1,13 +1,14 @@
 # k8svault-controller
 
-A controller for Kubernetes with the ability to add k8s native secrets to hashicorp vault.
-It might happen that you need secrets in vault however all tooling you are using is based on Kubernetes secrets.
-This controllers makes sure that secrets and fields are available in vault as well.
+A controller for Kubernetes with the ability to automate secret provisioning.
+You may either provision secrets from kubernetes secrets or from other vaults.
 
 It does this by adding certain annotations to a Secret resource.
 
-## Example
-Following a secret which fields must be placed into vault:
+## Example VaultBinding
+
+A `VaultBinding` binds a kubernetes vanialla secret to a vault path.
+Following a secret which fields shall be placed into vault:
 
 ```yaml
 apiVersion: v1
@@ -30,7 +31,7 @@ metadata:
   name: my-secret
   namespace: default
 spec:
-  address: "vault:8200"
+  address: "https://vault:8200"
   path: "/secret/env/myapp"
   forceApply: true
   secret:
@@ -39,11 +40,15 @@ spec:
   - name: password
   - name: username
     rename: root
-  auth:
-    role: default
 ```
+**Note**: The field named  `password` gets written with the same name while the `username` field gets created as `root` in vault.
 
+## Example VaultMirror
 
+A `VaultMirror` binds a source vault path to a destination vault path.
+Following a secret which fields shall be placed into the destination vault:
+
+```yaml
 apiVersion: infra.doodle.com/v1beta1
 kind: VaultMirror
 metadata:
@@ -51,21 +56,19 @@ metadata:
   namespace: default
 spec:
   source:
-    address: "staging-vault:8200"
-    path: "/secret/staging/devbox-master/myapp"
+    address: "https://source-vault:8200"
+    path: "/secret/env/myapp"
   destination:
-    address: "vault:8200"
+    address: "https://source-vault:8200"
     path: "/secret/env/myapp"    
-  forceApply: false
+  forceApply: true
+  interval: "0"
   fields:
   - name: password
   - name: username
-    rename: root
+```
 
-
-**Note**: The field named  `password` gets written with the same name while the `username` field gets created as `root` in vault.
-
-## Specify TLS settings
+## Specify Advanced TLS & Auth settings
 
 It is possible to set additional fields including TLS configuration for vault:
 
@@ -90,17 +93,41 @@ spec:
     role: default
 ```
 
-Other TLS settings:
-```go
-type VaultTLSSpec struct {
-	CACert     string `json:"caCert,omitempty"`
-	CAPath     string `json:"caPath,omitempty"`
-	ClientCert string `json:"clientCert,omitempty"`
-	ClientKey  string `json:"clientKey,omitempty"`
-	ServerName string `json:"serverName,omitempty"`
-	Insecure   bool   `json:"insecure,omitempty"`
-}
+Other `tlsConfig` include:
+
+*	CACert
+*	CAPath
+*	ClientCert
+*	ClientKey
+*	ServerName
+*	Insecure
+
+An example for `VaultMirror:
+
+```yaml
+apiVersion: infra.doodle.com/v1beta1
+kind: VaultBinding
+metadata:
+  name: my-secret
+  namespace: default
+spec:
+  source:
+    address: "https://vault-source:8200"
+    path: "/secret/env/myapp"
+    tlsConfig:
+      insecure: true
+    auth:
+      role: reader
+  destination:
+    address: "https://vault-dest:8200"
+    path: "/secret/env/myapp"
+    tlsConfig:
+      insecure: true
+    auth:
+      role: writer
+  forceApply: true
 ```
+
 
 ## Helm chart
 
@@ -153,4 +180,4 @@ Example rule for kubernetes auth config:
 
 Best practice is to create one for the controller on each vault you would like to manage secrets.
 The auth role should be called `k8svault-controller`) which gets used by default in this controller. However you may also change the default one using the env `VAULT_ROLE`
-or change it individually in each VaultBinding.
+or change it individually in each VaultBinding/VaultMirror.
