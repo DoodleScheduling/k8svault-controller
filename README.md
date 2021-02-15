@@ -25,7 +25,7 @@ type: Opaque
 To bind both fields to our example vault path at `/secret/env/myapp` a binding might look like this:
 
 ```yaml
-apiVersion: infra.doodle.com/v1beta1
+apiVersion: vault.infra.doodle.com/v1beta1
 kind: VaultBinding
 metadata:
   name: my-secret
@@ -49,7 +49,7 @@ A `VaultMirror` binds a source vault path to a destination vault path.
 Following a secret which fields shall be placed into the destination vault:
 
 ```yaml
-apiVersion: infra.doodle.com/v1beta1
+apiVersion: vault.infra.doodle.com/v1beta1
 kind: VaultMirror
 metadata:
   name: my-secret
@@ -73,7 +73,7 @@ spec:
 It is possible to set additional fields including TLS configuration for vault:
 
 ```yaml
-apiVersion: infra.doodle.com/v1beta1
+apiVersion: vault.infra.doodle.com/v1beta1
 kind: VaultBinding
 metadata:
   name: my-secret
@@ -105,7 +105,7 @@ Other `tlsConfig` include:
 An example for `VaultMirror:
 
 ```yaml
-apiVersion: infra.doodle.com/v1beta1
+apiVersion: vault.infra.doodle.com/v1beta1
 kind: VaultBinding
 metadata:
   name: my-secret

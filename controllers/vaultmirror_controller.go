@@ -53,8 +53,8 @@ func (r *VaultMirrorReconciler) SetupWithManager(mgr ctrl.Manager, opts VaultMir
 		Complete(r)
 }
 
-// +kubebuilder:rbac:groups=infra.doodle.com,resources=VaultMirrors,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=infra.doodle.com,resources=VaultMirrors/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=vault.infra.doodle.com,resources=VaultMirrors,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=vault.infra.doodle.com,resources=VaultMirrors/status,verbs=get;update;patch
 
 // Reconcile VaultMirrors
 func (r *VaultMirrorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
