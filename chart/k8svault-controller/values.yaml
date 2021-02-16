@@ -103,6 +103,10 @@ serviceAccount:
 # Hower you might disable the cluster rule and manually add fine graded rules.
 clusterRBAC:
   enabled: true
+  # The ability to validate kubernetes sa jwt is required if your vault(s) is not setup with a
+  # token validation jwt by itself (https://www.vaultproject.io/api/auth/kubernetes#parameters).
+  # You might disable this binding if you do not require it.
+  authDelegatorBinding: true
 
 # Creates a PodSecurityPolicy and the role/rolebinding
 # allowing the serviceaccount to use it

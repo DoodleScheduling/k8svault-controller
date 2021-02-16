@@ -22,4 +22,30 @@ subjects:
   name: {{ .Values.serviceAccount.name }}
   {{- end }}
   namespace: {{ .Release.Namespace }}
+{{- if .Values.clusterRBAC.authDelegatorBinding }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ template "k8svault-controller.fullname" . }}-auth-delegator
+  labels:
+    app.kubernetes.io/name: {{ include "k8svault-controller.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    helm.sh/chart: {{ include "k8svault-controller.chart" . }}
+  annotations:
+    {{- toYaml .Values.annotations | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+- kind: ServiceAccount
+  {{- if .Values.serviceAccount.create  }}
+  name: {{ template "k8svault-controller.fullname" . }}
+  {{- else }}
+  name: {{ .Values.serviceAccount.name }}
+  {{- end }}
+  namespace: {{ .Release.Namespace }}
+{{- end }}
 {{- end }}
