@@ -144,11 +144,11 @@ type VaultWriter interface {
 }
 
 // ApplySecret applies the desired secret to vault
-func (h *VaultHandler) Write(writer VaultWriter, data map[string]interface{}) (bool, error) {
+func (h *VaultHandler) Write(writer VaultWriter, srcData map[string]interface{}) (bool, error) {
 	var writeBack bool
 
 	// Ignore error if there is no path at the destination
-	dstData, err := h.Read(writer.GetPath())
+	data, err := h.Read(writer.GetPath())
 	if err != nil && err != ErrPathNotFound {
 		return writeBack, err
 	}
@@ -156,7 +156,7 @@ func (h *VaultHandler) Write(writer VaultWriter, data map[string]interface{}) (b
 	// If no field mapping is configured all fields get mapped with their source field name
 	mapping := writer.GetFieldMapping()
 	if len(mapping) == 0 {
-		for k, _ := range data {
+		for k, _ := range srcData {
 			mapping = append(mapping, v1beta1.FieldMapping{
 				Name: k,
 			})
@@ -174,12 +174,12 @@ func (h *VaultHandler) Write(writer VaultWriter, data map[string]interface{}) (b
 		h.logger.Info("applying fields to vault", "srcField", srcField, "dstField", dstField, "dstPath", writer.GetPath())
 
 		// If k8s secret field does not exists return an error
-		srcValue, ok := data[srcField]
+		srcValue, ok := srcData[srcField]
 		if !ok {
 			return writeBack, ErrFieldNotAvailable
 		}
 
-		_, existingField := dstData[dstField]
+		_, existingField := data[dstField]
 
 		switch {
 		case !existingField:
