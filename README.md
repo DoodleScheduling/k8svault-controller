@@ -169,13 +169,9 @@ Vault needs to be configured to allow authenticate via kubernetes auth. A auth r
 the serviceAccount of this controller.
 **Ensure** that the namespace and serviceaccount both matches the serviceaccount where this controller gets deployed.
 
-Example rule for kubernetes auth config:
+Example role binding for kubernetes auth config:
 ```
-- bound_service_account_names: k8svault-controller
-  bound_service_account_namespaces: default
-  name: k8svault-controller
-  policies: allow_secrets
-  ttl: 1h
+vault write auth/kubernetes/role/k8svault-controller bound_service_account_names=k8svault-controller bound_service_account_namespaces=my-namespace-where-k8svault-controller-isinstalled policies=my-policy
 ```
 
 Best practice is to create one for the controller on each vault you would like to manage secrets.
