@@ -20,9 +20,10 @@ rules:
     - list
     - watch
 - apiGroups:
-  - "infra.doodle.com"
+  - "vault.infra.doodle.com"
   resources:
   - vaultbindings
+  - vaultmirrors
   verbs:
   - create
   - delete
@@ -32,9 +33,10 @@ rules:
   - update
   - watch
 - apiGroups:
-  - "infra.doodle.com"
+  - "vault.infra.doodle.com"
   resources:
   - vaultbindings/status
+  - vaultmirrors/status
   verbs:
   - get
   - patch

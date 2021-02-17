@@ -47,7 +47,6 @@ const (
 // VaultBinding reconciles a VaultBinding object
 type VaultBindingReconciler struct {
 	client.Client
-	indexer  client.FieldIndexer
 	Log      logr.Logger
 	Scheme   *runtime.Scheme
 	Recorder record.EventRecorder
@@ -98,15 +97,15 @@ func (r *VaultBindingReconciler) requestsForSecretChange(o client.Object) []reco
 
 	var reqs []reconcile.Request
 	for _, i := range list.Items {
-		r.Log.Info("referenced secret from a vaultbinding changed detected, reconcile binding", "namespac", i.GetNamespace(), "name", i.GetName())
+		r.Log.Info("referenced secret from a vaultbinding changed detected, reconcile binding", "namespace", i.GetNamespace(), "name", i.GetName())
 		reqs = append(reqs, reconcile.Request{NamespacedName: objectKey(&i)})
 	}
 
 	return reqs
 }
 
-// +kubebuilder:rbac:groups=core,resources=VaultBindings,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core,resources=VaultBindings/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=vault.infra.doodle.com,resources=VaultBindings,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=vault.infra.doodle.com,resources=VaultBindings/status,verbs=get;update;patch
 
 // Reconcile VaultBindings
 func (r *VaultBindingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -155,7 +154,7 @@ func (r *VaultBindingReconciler) reconcile(ctx context.Context, binding v1beta1.
 		return v1beta1.VaultBindingNotBound(binding, v1beta1.SecretNotFoundReason, msg), ctrl.Result{Requeue: true}, err
 	}
 
-	h, err := FromBinding(&binding, logger)
+	h, err := NewHandler(binding.Spec.VaultSpec, logger)
 
 	// Failed to setup vault client, requeue immediately
 	if err != nil {
@@ -164,7 +163,13 @@ func (r *VaultBindingReconciler) reconcile(ctx context.Context, binding v1beta1.
 		return v1beta1.VaultBindingNotBound(binding, v1beta1.VaultConnectionFailedReason, msg), ctrl.Result{Requeue: true}, err
 	}
 
-	_, err = h.ApplySecret(&binding, secret)
+	// Map k8s secret (convert to string, base64 devcode)
+	data := make(map[string]interface{})
+	for k, v := range secret.Data {
+		data[k] = string(v)
+	}
+
+	_, err = h.Write(&binding.Spec, data)
 
 	// Failed to setup vault client, requeue immediately
 	if err != nil {

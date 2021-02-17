@@ -66,6 +66,8 @@ podTemplate(label: 'k8svault-controller',
             bumpImageVersion(env.TAG_NAME)
 
             tgz="k8svault-controller-${version}.tgz"
+            sh "mkdir chart/k8svault-controller/crds"
+            sh "cp config/crd/bases/* chart/k8svault-controller/crds"
             sh "helm package chart/k8svault-controller"
 
           }

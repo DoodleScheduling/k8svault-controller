@@ -7,7 +7,6 @@ import (
 
 	"github.com/go-logr/logr"
 	vaultapi "github.com/hashicorp/vault/api"
-	corev1 "k8s.io/api/core/v1"
 
 	v1beta1 "github.com/DoodleScheduling/k8svault-controller/api/v1beta1"
 	"github.com/DoodleScheduling/k8svault-controller/controllers/vault"
@@ -21,23 +20,23 @@ const (
 
 // Common errors
 var (
-	ErrVaultAddrNotFound          = errors.New("Neither vault address nor a default vault address found")
-	ErrK8sSecretFieldNotAvailable = errors.New("K8s secret field to be mapped does not exist")
-	ErrUnsupportedAuthType        = errors.New("Unsupported vault authentication")
-	ErrVaultConfig                = errors.New("Failed to setup default vault configuration")
+	ErrVaultAddrNotFound   = errors.New("Neither vault address nor a default vault address found")
+	ErrFieldNotAvailable   = errors.New("Source field to be mapped does not exist")
+	ErrUnsupportedAuthType = errors.New("Unsupported vault authentication")
+	ErrVaultConfig         = errors.New("Failed to setup default vault configuration")
+	ErrPathNotFound        = errors.New("Vault path not found")
 )
 
 // Setup vault client & authentication from binding
-func setupAuth(h *VaultHandler, binding *v1beta1.VaultBinding) error {
+func setupAuth(h *VaultHandler, config *v1beta1.VaultSpec) error {
 	auth := vault.NewAuthHandler(&vault.AuthHandlerConfig{
 		Logger: h.logger,
 		Client: h.c,
 	})
 
 	var method vault.AuthMethod
-
-	if binding.Spec.Auth.Type == "kubernetes" || binding.Spec.Auth.Type == "" {
-		m, err := authKubernetes(h, binding)
+	if config.Auth.Type == "kubernetes" || config.Auth.Type == "" {
+		m, err := authKubernetes(h, config)
 		if err != nil {
 			return err
 		}
@@ -56,18 +55,19 @@ func setupAuth(h *VaultHandler, binding *v1beta1.VaultBinding) error {
 
 // Wrapper around vault kubernetes auth (taken from vault agent)
 // Injects env variables if not set on the binding
-func authKubernetes(h *VaultHandler, binding *v1beta1.VaultBinding) (vault.AuthMethod, error) {
+func authKubernetes(h *VaultHandler, config *v1beta1.VaultSpec) (vault.AuthMethod, error) {
 	var role string
+
 	switch {
-	case binding.Spec.Auth.Role != "":
-		role = binding.Spec.Auth.Role
+	case config.Auth.Role != "":
+		role = config.Auth.Role
 	case os.Getenv("VAULT_ROLE") != "":
 		role = os.Getenv("VAULT_ROLE")
 	default:
 		role = DefaultAuthRole
 	}
 
-	tokenPath := binding.Spec.Auth.TokenPath
+	tokenPath := config.Auth.TokenPath
 	if tokenPath == "" {
 		tokenPath = os.Getenv("VAULT_TOKEN_PATH")
 	}
@@ -92,21 +92,21 @@ func convertTLSSpec(spec v1beta1.VaultTLSSpec) *vaultapi.TLSConfig {
 	}
 }
 
-// FromBinding creates a vault client handler
-// If the binding holds no vault address it will fallback to the env VAULT_ADDRESS
-func FromBinding(binding *v1beta1.VaultBinding, logger logr.Logger) (*VaultHandler, error) {
+// NewHandler creates a vault client handler
+// If the config holds no vault address it will fallback to the env VAULT_ADDRESS
+func NewHandler(config *v1beta1.VaultSpec, logger logr.Logger) (*VaultHandler, error) {
 	cfg := vaultapi.DefaultConfig()
 
 	if cfg == nil {
 		return nil, ErrVaultConfig
 	}
 
-	if binding.Spec.Address != "" {
-		cfg.Address = binding.Spec.Address
+	if config.Address != "" {
+		cfg.Address = config.Address
 	}
 
 	// Overwrite TLS setttings with individual settings
-	cfg.ConfigureTLS(convertTLSSpec(binding.Spec.TLSConfig))
+	cfg.ConfigureTLS(convertTLSSpec(config.TLSConfig))
 
 	client, err := vaultapi.NewClient(cfg)
 	if err != nil {
@@ -121,7 +121,7 @@ func FromBinding(binding *v1beta1.VaultBinding, logger logr.Logger) (*VaultHandl
 
 	logger.Info("setup vault client", "vault", cfg.Address)
 
-	if err = setupAuth(h, binding); err != nil {
+	if err = setupAuth(h, config); err != nil {
 		return nil, err
 	}
 
@@ -136,54 +136,69 @@ type VaultHandler struct {
 	logger logr.Logger
 }
 
+// VaultWriter is used to specify the destination vault
+type VaultWriter interface {
+	IsForceApply() bool
+	GetPath() string
+	GetFieldMapping() []v1beta1.FieldMapping
+}
+
 // ApplySecret applies the desired secret to vault
-func (h *VaultHandler) ApplySecret(binding *v1beta1.VaultBinding, secret *corev1.Secret) (bool, error) {
+func (h *VaultHandler) Write(writer VaultWriter, srcData map[string]interface{}) (bool, error) {
 	var writeBack bool
 
-	// TODO Is there such a thing as locking the path so we don't overwrite fields which would be changed at the same time?
-	data, err := h.Read(binding.Spec.Path)
-	if err != nil {
+	// Ignore error if there is no path at the destination
+	data, err := h.Read(writer.GetPath())
+	if err != nil && err != ErrPathNotFound {
 		return writeBack, err
 	}
 
+	// If no field mapping is configured all fields get mapped with their source field name
+	mapping := writer.GetFieldMapping()
+	if len(mapping) == 0 {
+		for k, _ := range srcData {
+			mapping = append(mapping, v1beta1.FieldMapping{
+				Name: k,
+			})
+		}
+	}
+
 	// Loop through all mapping field and apply to the vault path data
-	for _, field := range binding.Spec.Fields {
-		k8sField := field.Name
-		vaultField := k8sField
+	for _, field := range mapping {
+		srcField := field.Name
+		dstField := srcField
 		if field.Rename != "" {
-			vaultField = field.Rename
+			dstField = field.Rename
 		}
 
-		h.logger.Info("applying k8s field to vault", "k8sField", k8sField, "vaultField", vaultField, "vaultPath", binding.Spec.Path)
+		h.logger.Info("applying fields to vault", "srcField", srcField, "dstField", dstField, "dstPath", writer.GetPath())
 
 		// If k8s secret field does not exists return an error
-		k8sValue, ok := secret.Data[k8sField]
+		srcValue, ok := srcData[srcField]
 		if !ok {
-			return writeBack, ErrK8sSecretFieldNotAvailable
+			return writeBack, ErrFieldNotAvailable
 		}
 
-		secret := string(k8sValue)
-
-		_, existingField := data[vaultField]
+		_, existingField := data[dstField]
 
 		switch {
 		case !existingField:
-			h.logger.Info("found new field to write", "vaultField", vaultField)
-			data[vaultField] = secret
+			h.logger.Info("found new field to write", "dstField", dstField)
+			data[dstField] = srcValue
 			writeBack = true
-		case data[vaultField] == secret:
-			h.logger.Info("skipping field, no update required", "vaultField", vaultField)
-		case binding.Spec.ForceApply == true:
-			data[vaultField] = secret
+		case data[dstField] == srcValue:
+			h.logger.Info("skipping field, no update required", "dstField", dstField)
+		case writer.IsForceApply():
+			data[dstField] = srcValue
 			writeBack = true
 		default:
-			h.logger.Info("skipping field, it already exists in vault and force apply is disabled", "vaultField", vaultField)
+			h.logger.Info("skipping field, it already exists in vault and force apply is not enabled", "dstField", dstField)
 		}
 	}
 
 	if writeBack == true {
 		// Finally write the secret back
-		_, err = h.c.Logical().Write(binding.Spec.Path, data)
+		_, err = h.c.Logical().Write(writer.GetPath(), data)
 		if err != nil {
 			return writeBack, err
 		}
@@ -200,9 +215,9 @@ func (h *VaultHandler) Read(path string) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	// Return empty map if no data exists
+	// Return empty map and PathNotFound error
 	if s == nil || s.Data == nil {
-		return make(map[string]interface{}), nil
+		return make(map[string]interface{}), ErrPathNotFound
 	}
 
 	return s.Data, nil

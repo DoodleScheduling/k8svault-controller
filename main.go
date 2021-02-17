@@ -78,7 +78,6 @@ func main() {
 
 	// Import flags into viper and bind them to env vars
 	// flags are converted to upper-case, - is replaced with _
-	// VaultBinding-length -> VaultBinding_LENGTH
 	err := viper.BindPFlags(pflag.CommandLine)
 	if err != nil {
 		setupLog.Error(err, "Failed parsing command line arguments")
@@ -135,6 +134,17 @@ func main() {
 	}
 	if err = vbReconciler.SetupWithManager(mgr, controllers.VaultBindingReconcilerOptions{MaxConcurrentReconciles: viper.GetInt("concurrent")}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "VaultBinding")
+		os.Exit(1)
+	}
+
+	vmReconciler := &controllers.VaultMirrorReconciler{
+		Client:   mgr.GetClient(),
+		Log:      ctrl.Log.WithName("controllers").WithName("VaultMirror"),
+		Scheme:   mgr.GetScheme(),
+		Recorder: mgr.GetEventRecorderFor("VaultMirror"),
+	}
+	if err = vmReconciler.SetupWithManager(mgr, controllers.VaultMirrorReconcilerOptions{MaxConcurrentReconciles: viper.GetInt("concurrent")}); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "VaultMirror")
 		os.Exit(1)
 	}
 
