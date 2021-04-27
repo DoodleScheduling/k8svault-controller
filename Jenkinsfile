@@ -9,8 +9,9 @@ podTemplate(label: 'k8svault-controller',
       ttyEnabled: true
     ),
     containerTemplate(
-      name: 'docker',
-      image: 'docker:latest',
+      name: 'kaniko',
+      command: '/busybox/cat',
+      image: 'gcr.io/kaniko-project/executor:debug',
       ttyEnabled: true
     ),
     containerTemplate(
@@ -21,17 +22,13 @@ podTemplate(label: 'k8svault-controller',
     ),
   ],
   volumes: [
-    hostPathVolume(mountPath: '/var/run/docker.sock', hostPath: '/var/run/docker.sock'),
+    secretVolume(secretName: 'dockerauth', mountPath: '/root/dockerauth')
   ]
 ) {
   node ('k8svault-controller') {
     ansiColor("xterm") {
       stage('checkout') {
         checkout(scm)
-      
-        container('docker') {
-          dockerAuth()
-        }
       }
 
       stage("build") {
@@ -56,9 +53,9 @@ podTemplate(label: 'k8svault-controller',
 
           version = "$major.$minor.$patch$group"
 
-          container('docker') {
-            sh "docker build . -t nexus.doodle.com:5000/devops/k8svault-controller:${env.TAG_NAME}"
-            sh "docker push nexus.doodle.com:5000/devops/k8svault-controller:${env.TAG_NAME}"
+          container(name: 'kaniko', shell: '/busybox/sh') {
+            sh "cp /root/dockerauth/.dockerconfigjson /kaniko/.docker/config.json"
+            sh "/kaniko/executor -f `pwd`/Dockerfile -c `pwd` --insecure --skip-tls-verify --cache=true --destination='nexus.doodle.com:5000/devops/k8svault-controller:${env.TAG_NAME}'"
           }
 
           container('helm') {
@@ -66,10 +63,8 @@ podTemplate(label: 'k8svault-controller',
             bumpImageVersion(env.TAG_NAME)
 
             tgz="k8svault-controller-${version}.tgz"
-            sh "mkdir chart/k8svault-controller/crds"
             sh "cp config/crd/bases/* chart/k8svault-controller/crds"
             sh "helm package chart/k8svault-controller"
-
           }
 
           container('golang') {
@@ -83,28 +78,6 @@ podTemplate(label: 'k8svault-controller',
         }
       }
     }
-  }
-}
-
-void dockerAuth() {
-  // nexus repository
-  withCredentials([[
-                       $class          : 'UsernamePasswordMultiBinding',
-                       credentialsId   : 'nexus',
-                       usernameVariable: 'NEXUS_USER',
-                       passwordVariable: 'NEXUS_PASSWORD'
-                   ]]) {
-    sh "docker login nexus.doodle.com:5000 -u ${env.NEXUS_USER} -p ${env.NEXUS_PASSWORD}"
-  }
-
-  // docker hub
-  withCredentials([[
-                       $class          : 'UsernamePasswordMultiBinding',
-                       credentialsId   : 'dockerhub',
-                       usernameVariable: 'DOCKERHUB_USER',
-                       passwordVariable: 'DOCKERHUB_PASSWORD'
-                   ]]) {
-    sh "docker login -u ${env.DOCKERHUB_USER} -p ${env.DOCKERHUB_PASSWORD}"
   }
 }
 
