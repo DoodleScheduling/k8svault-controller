@@ -53,7 +53,7 @@ func init() {
 var (
 	metricsAddr             = ":9556"
 	probesAddr              = ":9557"
-	enableLeaderElection    = true
+	enableLeaderElection    = false
 	leaderElectionNamespace string
 	namespaces              = ""
 	concurrent              = 4
