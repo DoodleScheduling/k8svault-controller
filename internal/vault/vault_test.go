@@ -2,7 +2,6 @@ package vault
 
 import (
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/go-logr/logr"
@@ -47,7 +46,6 @@ func (rw *mockReadWriter) Read(path string) (*api.Secret, error) {
 }
 
 func (rw *mockReadWriter) Write(path string, data map[string]interface{}) (*api.Secret, error) {
-	fmt.Printf("WRITE %#v -- %#v -- %#v\n", path, data, rw.writeResult.err)
 	rw.writtenPath = path
 	rw.writtenData = data
 
