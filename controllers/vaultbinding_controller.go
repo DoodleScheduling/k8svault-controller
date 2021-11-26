@@ -36,7 +36,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	v1beta1 "github.com/DoodleScheduling/k8svault-controller/api/v1beta1"
+	"github.com/DoodleScheduling/k8svault-controller/internal/vault"
 )
+
+// +kubebuilder:rbac:groups=vault.infra.doodle.com,resources=vaultbindings,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=vault.infra.doodle.com,resources=vaultbindings/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 const (
 	// secretIndexKey is the key used for indexing VaultBindings based on
@@ -104,9 +110,6 @@ func (r *VaultBindingReconciler) requestsForSecretChange(o client.Object) []reco
 	return reqs
 }
 
-// +kubebuilder:rbac:groups=vault.infra.doodle.com,resources=VaultBindings,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=vault.infra.doodle.com,resources=VaultBindings/status,verbs=get;update;patch
-
 // Reconcile VaultBindings
 func (r *VaultBindingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := r.Log.WithValues("Namespace", req.Namespace, "Name", req.NamespacedName)
@@ -154,7 +157,7 @@ func (r *VaultBindingReconciler) reconcile(ctx context.Context, binding v1beta1.
 		return v1beta1.VaultBindingNotBound(binding, v1beta1.SecretNotFoundReason, msg), ctrl.Result{Requeue: true}, err
 	}
 
-	h, err := NewHandler(binding.Spec.VaultSpec, logger)
+	h, err := vault.NewHandler(binding.Spec.VaultSpec, logger)
 
 	// Failed to setup vault client, requeue immediately
 	if err != nil {
