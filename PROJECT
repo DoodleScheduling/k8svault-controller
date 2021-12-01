@@ -2,6 +2,9 @@ domain: doodle.com
 repo: github.com/DoodleScheduling/k8svault-controller
 resources:
 - group: vault.infra.doodle.com
-  kind: VaultClaim
+  kind: VaultBinding
+  version: v1beta1
+- group: vault.infra.doodle.com
+  kind: VaultMirror
   version: v1beta1
 version: "2"
