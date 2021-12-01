@@ -18,12 +18,15 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"path/filepath"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/wait"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -125,4 +128,41 @@ func randStringRunes(n int) string {
 		b[i] = letterRunes[rand.Intn(len(letterRunes))]
 	}
 	return string(b)
+}
+
+type vaultContainer struct {
+	testcontainers.Container
+	URI string
+}
+
+func setupvaultContainer(ctx context.Context) (*vaultContainer, error) {
+	req := testcontainers.ContainerRequest{
+		Image:        "vault:1.9.0",
+		ExposedPorts: []string{"8200/tcp"},
+		WaitingFor:   wait.ForListeningPort("8200"),
+		Env:          map[string]string{},
+	}
+
+	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: req,
+		Started:          true,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	ip, err := container.Host(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	mappedPort, err := container.MappedPort(ctx, "8200")
+	if err != nil {
+		return nil, err
+	}
+
+	uri := fmt.Sprintf("http://%s:%s", ip, mappedPort.Port())
+
+	return &vaultContainer{Container: container, URI: uri}, nil
 }

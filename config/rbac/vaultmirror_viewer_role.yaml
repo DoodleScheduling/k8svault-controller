@@ -1,0 +1,20 @@
+# permissions for end users to view postgresqls.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: vaultmirror-viewer-role
+rules:
+- apiGroups:
+  - vault.infra.doodle.com
+  resources:
+  - vaultmirrors
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - vault.infra.doodle.com
+  resources:
+  - vaultmirrors/status
+  verbs:
+  - get

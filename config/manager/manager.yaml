@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8svault-controller
+  labels:
+    control-plane: controller
+spec:
+  selector:
+    matchLabels:
+      app: k8svault-controller
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: k8svault-controller
+    spec:
+      containers:
+      - command:
+        - /manager
+#        args:
+#        - --enable-leader-election
+        image: controller:latest
+        imagePullPolicy: IfNotPresent
+        name: manager
+        resources:
+          limits:
+            cpu: 100m
+            memory: 500Mi
+          requests:
+            cpu: 100m
+            memory: 200Mi
+      terminationGracePeriodSeconds: 10

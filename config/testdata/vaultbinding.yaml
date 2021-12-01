@@ -1,0 +1,15 @@
+apiVersion: vault.infra.doodle.com/v1beta1
+kind: VaultBinding
+metadata:
+  name: test-secret
+spec:
+  address: http://vault.vault:8200
+  fields:
+  - name: password
+    rename: PASSWORD
+  - name: username
+    rename: USERNAME
+  forceApply: true
+  path: secret/example
+  secret:
+    name: test-secret

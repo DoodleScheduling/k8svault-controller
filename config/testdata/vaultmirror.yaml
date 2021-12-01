@@ -1,0 +1,11 @@
+apiVersion: vault.infra.doodle.com/v1beta1
+kind: VaultMirror
+metadata:
+  name: test-secret
+spec:
+  destination:
+    address: http://vault.vault:8200
+    path: secret/example-copy
+  source:
+    address: http://vault.vault:8200
+    path: secret/example
