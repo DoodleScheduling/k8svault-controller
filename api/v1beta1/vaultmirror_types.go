@@ -32,15 +32,15 @@ type VaultMirrorSpec struct {
 
 	// Vault does not provide a watch api, therefore the controller may reconcile a mirror in a specified interval
 	// +optional
-	Interval *metav1.Duration `json:"interval"`
+	Interval *metav1.Duration `json:"interval,omitempty"`
 
 	// By default existing matching fields in vault do not get overwritten
 	// +optional
-	ForceApply bool `json:"forceApply"`
+	ForceApply bool `json:"forceApply,omitempty"`
 
 	// Define the secrets which must be mapped to vault
 	// +optional
-	Fields []FieldMapping `json:"fields"`
+	Fields []FieldMapping `json:"fields,omitempty"`
 }
 
 // VaultMirrorStatus defines the observed state of VaultMirror
