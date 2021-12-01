@@ -85,4 +85,4 @@ jobs:
           kubectl -n vault exec -ti sts/vault vault -- vault list /secret/
           kubectl -n k8svault-system get all
           kubectl -n k8svault-system logs deploy/k8svault-controller
-          kubectl -n minio get all
+          kubectl -n vault get all
