@@ -5,3 +5,4 @@ resources:
 - role_binding.yaml
 - leader_election_role.yaml
 - leader_election_role_binding.yaml
+- token_review_role_binding.yaml
