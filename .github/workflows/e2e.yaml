@@ -67,6 +67,7 @@ jobs:
           echo "enable vault secret engine kv v1"
           kubectl -n vault wait pods/vault-0 --for=condition=Ready --timeout=1m
           kubectl -n vault exec -ti sts/vault vault -- vault secrets disable kv
+          kubectl -n vault exec -ti sts/vault vault -- vault secrets disable secret
           kubectl -n vault exec -ti sts/vault vault -- vault secrets enable -version=1 -path=/secret kv
 
           echo "enable vault kubernetes authentication"
