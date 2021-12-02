@@ -77,7 +77,7 @@ jobs:
           k8s_host="$(kubectl exec vault-0 -n vault -- printenv | grep KUBERNETES_PORT_443_TCP_ADDR | cut -f 2- -d "=" | tr -d " ")"
           k8s_port="443"
           k8s_cacert="$(kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}' | base64 --decode)"
-          secret_name="$(kubectl get serviceaccount vault-sa -n vault -o go-template='{{ (index .secrets 0).name }}')"
+          secret_name="$(kubectl get serviceaccount vault -n vault -o go-template='{{ (index .secrets 0).name }}')"
           tr_account_token="$(kubectl get secret ${secret_name} -n vault -o go-template='{{ .data.token }}' | base64 --decode)"
           kubectl -n vault exec -ti sts/vault vault -- vault write auth/kubernetes/config token_reviewer_jwt="${tr_account_token}" kubernetes_host="https://${k8s_host}:${k8s_port}" kubernetes_ca_cert="${k8s_cacert}"
       - name: Run vault tests
