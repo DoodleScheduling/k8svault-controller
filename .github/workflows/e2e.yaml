@@ -82,7 +82,7 @@ jobs:
           kubectl -n k8svault-system describe pods
           kubectl -n k8svault-system get vaultbinding -oyaml
           kubectl -n k8svault-system get vaultmirror -oyaml
-          kubectl -n vault exec -ti sts/vault vault -- vault list /secret/
           kubectl -n k8svault-system get all
           kubectl -n k8svault-system logs deploy/k8svault-controller
           kubectl -n vault get all
+          kubectl -n vault exec -ti sts/vault vault -- vault list /secret/
