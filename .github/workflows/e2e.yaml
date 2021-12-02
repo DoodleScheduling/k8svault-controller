@@ -63,10 +63,11 @@ jobs:
           --namespace vault \
           --set server.dev.enabled=true \
           --set injector.enabled=false
-      - name: Run vault tests
-        run: |
+          kubectl -n vault wait pods/vault-0 --for=condition=Ready --timeout=1m
           kubectl -n vault exec -ti sts/vault vault -- vault secrets disable kv
           kubectl -n vault exec -ti sts/vault vault -- vault secrets enable -version=1 kv
+      - name: Run vault tests
+        run: |
           kubectl -n k8svault-system apply -f ./config/testdata
           kubectl -n k8svault-system wait vaultbinding/test-secret --for=condition=Bound --timeout=1m
           kubectl -n vault exec -ti sts/vault vault -- vault read /secret/example
