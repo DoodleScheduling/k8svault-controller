@@ -8,7 +8,7 @@ fullnameOverride: ""
 
 image:
   pullPolicy: IfNotPresent
-  repository: ghcr.io/DoodleScheduling/k8svault-controller
+  repository: ghcr.io/doodlescheduling/k8svault-controller
   tag:
 
 imagePullSecrets: []

@@ -3,5 +3,5 @@ kind: Kustomization
 resources:
 - deployment.yaml
 images:
-- name: ghcr.io/DoodleScheduling/k8svault-controller
+- name: ghcr.io/doodlescheduling/k8svault-controller
   newTag: v0.1.0

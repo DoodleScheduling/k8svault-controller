@@ -17,7 +17,7 @@ spec:
       containers:
       - command:
         - /manager
-        image: ghcr.io/DoodleScheduling/k8svault-controller:latest
+        image: ghcr.io/doodlescheduling/k8svault-controller:latest
         imagePullPolicy: IfNotPresent
         securityContext:
           allowPrivilegeEscalation: false

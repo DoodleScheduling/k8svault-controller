@@ -53,7 +53,7 @@ jobs:
           file: ./Dockerfile
           platforms: linux/amd64,linux/arm/v7,linux/arm64
           tags: |
-            ghcr.io/DoodleScheduling/${{ env.CONTROLLER }}:${{ steps.prep.outputs.VERSION }}
+            ghcr.io/doodlescheduling/${{ env.CONTROLLER }}:${{ steps.prep.outputs.VERSION }}
           labels: |
             org.opencontainers.image.title=${{ github.event.repository.name }}
             org.opencontainers.image.description=${{ github.event.repository.description }}
@@ -63,9 +63,8 @@ jobs:
             org.opencontainers.image.created=${{ steps.prep.outputs.BUILD_DATE }}
       - name: Check images
         run: |
-          docker buildx imagetools inspect ghcr.io/DoodleScheduling/${{ env.CONTROLLER }}:${{ steps.prep.outputs.VERSION }}
-          docker pull docker.io/DoodleScheduling/${{ env.CONTROLLER }}:${{ steps.prep.outputs.VERSION }}
-          docker pull ghcr.io/DoodleScheduling/${{ env.CONTROLLER }}:${{ steps.prep.outputs.VERSION }}
+          docker buildx imagetools inspect ghcr.io/doodlescheduling/${{ env.CONTROLLER }}:${{ steps.prep.outputs.VERSION }}
+          docker pull ghcr.io/doodlescheduling/${{ env.CONTROLLER }}:${{ steps.prep.outputs.VERSION }}
       - name: Generate release manifests
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
