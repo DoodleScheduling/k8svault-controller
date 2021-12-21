@@ -1,13 +1,17 @@
 # k8svault-controller
 
-A controller for Kubernetes with the ability to automate secret provisioning.
-You may either provision secrets from kubernetes secrets or from other vaults.
+[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/4787/badge)](https://bestpractices.coreinfrastructure.org/projects/4787)
+[![e2e](https://github.com/DoodleScheduling/k8svault-controller/workflows/e2e/badge.svg)](https://github.com/DoodleScheduling/k8svault-controller/actions)
+[![report](https://goreportcard.com/badge/github.com/DoodleScheduling/k8svault-controller)](https://goreportcard.com/report/github.com/DoodleScheduling/k8svault-controller)
+[![license](https://img.shields.io/github/license/DoodleScheduling/k8svault-controller.svg)](https://github.com/DoodleScheduling/k8svault-controller/blob/main/LICENSE)
+[![release](https://img.shields.io/github/release/DoodleScheduling/k8svault-controller/all.svg)](https://github.com/DoodleScheduling/k8svault-controller/releases)
 
-It does this by adding certain annotations to a Secret resource.
+A controller for kubernetes for automating secret provisioning to hashicorp vault.
+You may either provision secrets from kubernetes core secrets or from other vaults.
 
 ## Example VaultBinding
 
-A `VaultBinding` binds a kubernetes vanialla secret to a vault path.
+A `VaultBinding` binds a kubernetes core secret to a hashicorp vault path.
 Following a secret which fields shall be placed into vault:
 
 ```yaml
@@ -136,14 +140,18 @@ Please see [chart/k8svault-controller](https://github.com/DoodleScheduling/k8sva
 ## Overwrite secrets in vault
 
 The controller does not touch any other fields in vault besides the explicitly specified ones.
-And existing ones with matching fields will only be overwritten if `spec.forceApply` is set.
+Existing fields will only be overwritten if `spec.forceApply` is set.
 
 **Note** If you want to keep the secret in sync with vault this must be enabled.
 
 ## Limitations
 
-The controller only supports [Kubernetes authentication method](https://www.vaultproject.io/docs/auth/kubernetes) for now.
-Currently there is no garbage collection implemented, meaning all the things created in vault are not removed if the binding gets deleted.
+Currently there are some limitations which we may address soon. 
+
+* There is only support for kubernetes vault auth
+* There is only support for the secrets engine v1
+* The controller only supports [Kubernetes authentication method](https://www.vaultproject.io/docs/auth/kubernetes) for now.
+* Currently there is no garbage collection implemented, meaning all the things created in vault are not removed if the binding gets deleted.
 
 ## Configure the controller
 

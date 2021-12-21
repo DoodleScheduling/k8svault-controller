@@ -149,5 +149,56 @@ var _ = Describe("VaultBindingReconciler", func() {
 					got.Status.Conditions[0].Type == infrav1beta1.BoundCondition
 			}, timeout, interval).Should(BeTrue())
 		})
+
+		It("fails if vault can't be contacted", func() {
+			By("Adding secret")
+			keySecret := types.NamespacedName{
+				Name:      "secret-" + randStringRunes(5),
+				Namespace: namespace.Name,
+			}
+
+			secret := randStringRunes(5)
+			createdSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      keySecret.Name,
+					Namespace: keySecret.Namespace,
+				},
+				Data: map[string][]byte{
+					"berries": []byte(secret),
+				},
+			}
+
+			Expect(k8sClient.Create(context.Background(), createdSecret)).Should(Succeed())
+
+			key := types.NamespacedName{
+				Name:      "vaultbinding-" + randStringRunes(5),
+				Namespace: namespace.Name,
+			}
+			created := &infrav1beta1.VaultBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      key.Name,
+					Namespace: key.Namespace,
+				},
+				Spec: infrav1beta1.VaultBindingSpec{
+					VaultSpec: &infrav1beta1.VaultSpec{
+						Address: "https://does-not-exists",
+						Path:    "/dest/not-found",
+					},
+					Secret: &corev1.SecretReference{
+						Name: keySecret.Name,
+					},
+				},
+			}
+			Expect(k8sClient.Create(context.Background(), created)).Should(Succeed())
+
+			got := &infrav1beta1.VaultBinding{}
+			Eventually(func() bool {
+				_ = k8sClient.Get(context.Background(), key, got)
+				return len(got.Status.Conditions) == 1 &&
+					got.Status.Conditions[0].Reason == infrav1beta1.VaultConnectionFailedReason &&
+					got.Status.Conditions[0].Status == "False" &&
+					got.Status.Conditions[0].Type == infrav1beta1.BoundCondition
+			}, timeout, interval).Should(BeTrue())
+		})
 	})
 })

@@ -3,18 +3,12 @@ package vault
 import (
 	"context"
 	"errors"
-	"os"
 
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/vault/api"
 	vaultapi "github.com/hashicorp/vault/api"
 
 	v1beta1 "github.com/DoodleScheduling/k8svault-controller/api/v1beta1"
-)
-
-const (
-	// DefaultAuthRole is the vault auth role name
-	DefaultAuthRole = "k8svault-controller"
 )
 
 // Common errors
@@ -178,17 +172,10 @@ func (h *VaultHandler) Read(path string) (map[string]interface{}, error) {
 // Setup vault client & authentication from binding
 func setupAuth(h *VaultHandler, opts AuthHandlerConfig, config *v1beta1.VaultAuthSpec) error {
 	handler := NewAuthHandler(opts)
+	method, err := registry.Invoke(config.Type, config)
 
-	var method AuthMethod
-	if config.Type == "kubernetes" || config.Type == "" {
-		m, err := authKubernetes(h, config)
-		if err != nil {
-			return err
-		}
-
-		method = m
-	} else {
-		return ErrUnsupportedAuthType
+	if err != nil {
+		return err
 	}
 
 	if err := handler.Authenticate(context.TODO(), method); err != nil {
@@ -196,34 +183,6 @@ func setupAuth(h *VaultHandler, opts AuthHandlerConfig, config *v1beta1.VaultAut
 	}
 
 	return nil
-}
-
-// Wrapper around vault kubernetes auth (taken from vault agent)
-// Injects env variables if not set on the binding
-func authKubernetes(h *VaultHandler, config *v1beta1.VaultAuthSpec) (AuthMethod, error) {
-	var role string
-
-	switch {
-	case config.Role != "":
-		role = config.Role
-	case os.Getenv("VAULT_ROLE") != "":
-		role = os.Getenv("VAULT_ROLE")
-	default:
-		role = DefaultAuthRole
-	}
-
-	tokenPath := config.TokenPath
-	if tokenPath == "" {
-		tokenPath = os.Getenv("VAULT_TOKEN_PATH")
-	}
-
-	return NewKubernetesAuthMethod(&AuthConfig{
-		MountPath: "/auth/kubernetes",
-		Config: map[string]interface{}{
-			"role":       role,
-			"token_path": tokenPath,
-		},
-	})
 }
 
 func convertTLSSpec(spec v1beta1.VaultTLSSpec) *vaultapi.TLSConfig {

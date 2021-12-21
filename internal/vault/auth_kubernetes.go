@@ -10,11 +10,18 @@ import (
 	"os"
 	"strings"
 
+	v1beta1 "github.com/DoodleScheduling/k8svault-controller/api/v1beta1"
 	"github.com/hashicorp/errwrap"
 )
 
+func init() {
+	registry.MustRegister("", authKubernetes)
+	registry.MustRegister("kubernetes", authKubernetes)
+}
+
 const (
 	serviceAccountFile = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+	DefaultAuthRole    = "k8svault-controller"
 )
 
 type kubernetesMethod struct {
@@ -28,6 +35,33 @@ type kubernetesMethod struct {
 
 	// jwtData is a ReadCloser used to inject a ReadCloser for mocking tests.
 	jwtData io.ReadCloser
+}
+
+// Wrapper around vault kubernetes auth (taken from vault agent)
+func authKubernetes(config *v1beta1.VaultAuthSpec) (AuthMethod, error) {
+	var role string
+
+	switch {
+	case config.Role != "":
+		role = config.Role
+	case os.Getenv("VAULT_ROLE") != "":
+		role = os.Getenv("VAULT_ROLE")
+	default:
+		role = DefaultAuthRole
+	}
+
+	tokenPath := config.TokenPath
+	if tokenPath == "" {
+		tokenPath = os.Getenv("VAULT_TOKEN_PATH")
+	}
+
+	return NewKubernetesAuthMethod(&AuthConfig{
+		MountPath: "/auth/kubernetes",
+		Config: map[string]interface{}{
+			"role":       role,
+			"token_path": tokenPath,
+		},
+	})
 }
 
 // NewKubernetesAuthMethod reads the user configuration and returns a configured
