@@ -42,8 +42,8 @@ jobs:
         uses: docker/login-action@v1
         with:
           registry: ghcr.io
-          username: DoodleSchedulingcdbot
-          password: ${{ secrets.GHCR_TOKEN }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish multi-arch container image
         uses: docker/build-push-action@v2
         with:
