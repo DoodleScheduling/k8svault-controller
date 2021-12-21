@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Setup Kustomize
-        uses: DoodleSchedulingcd/pkg/actions/kustomize@main
+        uses: fluxcd/pkg/actions/kustomize@main
       - name: Prepare
         id: prep
         run: |
