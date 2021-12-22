@@ -1,0 +1,16 @@
+apiVersion: vault.infra.doodle.com/v1beta1
+kind: VaultMirror
+metadata:
+  name: my-secret
+  namespace: default
+spec:
+  source:
+    address: "https://source-vault:8200"
+    path: "/secret/env/myapp"
+  destination:
+    address: "https://source-vault:8200"
+    path: "/secret/env/myapp"    
+  forceApply: true
+  fields:
+  - name: password
+  - name: username

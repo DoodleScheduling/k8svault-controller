@@ -1,0 +1,25 @@
+apiVersion: v1
+data:
+  password: ZGUK
+  username: MQo=
+kind: Secret
+metadata:
+  name: my-secret
+  namespace: default
+type: Opaque
+---
+apiVersion: vault.infra.doodle.com/v1beta1
+kind: VaultBinding
+metadata:
+  name: my-secret
+  namespace: default
+spec:
+  address: "https://vault:8200"
+  path: "/secret/env/myapp"
+  forceApply: true
+  secret:
+    name: my-secret
+  fields:
+  - name: password
+  - name: username
+    rename: root
