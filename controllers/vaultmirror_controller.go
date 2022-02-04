@@ -80,6 +80,7 @@ func (r *VaultMirrorReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 
 	mirror, result, reconcileErr := r.reconcile(ctx, mirror, logger)
+	mirror.Status.ObservedGeneration = mirror.GetGeneration()
 
 	// Update status after reconciliation.
 	if err = r.patchStatus(ctx, &mirror); err != nil {

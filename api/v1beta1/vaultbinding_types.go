@@ -56,6 +56,9 @@ type VaultBindingStatus struct {
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
+	// ObservedGeneration is the last generation reconciled by the controller
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
 	// Vault Status (not implemented yet)
 	Vault VaultBindingVaultStatus `json:",inline"`
 }

@@ -131,6 +131,7 @@ func (r *VaultBindingReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 
 	binding, result, reconcileErr := r.reconcile(ctx, binding, logger)
+	binding.Status.ObservedGeneration = binding.GetGeneration()
 
 	// Update status after reconciliation.
 	if err = r.patchStatus(ctx, &binding); err != nil {
