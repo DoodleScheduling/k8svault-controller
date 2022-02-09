@@ -21,7 +21,6 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
-	"github.com/prometheus/common/log"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
@@ -84,7 +83,7 @@ func (r *VaultMirrorReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	// Update status after reconciliation.
 	if err = r.patchStatus(ctx, &mirror); err != nil {
-		log.Error(err, "unable to update status after reconciliation")
+		logger.Error(err, "unable to update status after reconciliation")
 		return ctrl.Result{Requeue: true}, err
 	}
 
