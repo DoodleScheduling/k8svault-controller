@@ -1,4 +1,0 @@
-git-repo: helm-charts
-owner: DoodleScheduling
-package-path: ./chart
-pages-branch: master
