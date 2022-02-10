@@ -20,4 +20,23 @@ entries:
     urls:
     - https://github.com/DoodleScheduling/k8svault-controller/releases/download/k8svault-controller-0.1.1/k8svault-controller-0.1.1.tgz
     version: 0.1.1
-generated: "2022-02-10T12:41:18.352262367Z"
+  - apiVersion: v2
+    appVersion: v0.1.0
+    created: "2022-02-10T13:17:37.104753318Z"
+    description: A kubernetes controller to sync kubernetes secrets to hashicorp vault
+    digest: 35969dacc3c53fa51601fbd0e5627ba595e78e1c93016f647a70cd001308e21a
+    home: https://github.com/DoodleScheduling/k8svault-controller
+    keywords:
+    - kubernetes-controller
+    - secret
+    - vault
+    maintainers:
+    - email: devops@doodle.com
+      name: devops
+    name: k8svault-controller
+    sources:
+    - https://github.com/DoodleScheduling/k8svault-controller
+    urls:
+    - https://github.com/DoodleScheduling/k8svault-controller/releases/download/k8svault-controller-0.1.0/k8svault-controller-0.1.0.tgz
+    version: 0.1.0
+generated: "2022-02-10T13:17:37.104766918Z"
