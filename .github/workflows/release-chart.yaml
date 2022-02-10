@@ -25,14 +25,3 @@ jobs:
           charts_dir: ./chart
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-      - name: Publish Helm chart
-        uses: stefanprodan/helm-gh-pages@master
-        with:
-          token: ${{ secrets.BOT_GITHUB_TOKEN }}
-          charts_dir: ./chart
-          charts_url: https://doodlescheduling.github.io/charts
-          owner: DoodleScheduling
-          repository: charts
-          branch: gh-pages
-          #commit_username: johndoe
-          #commit_email: johndoe@example.com
