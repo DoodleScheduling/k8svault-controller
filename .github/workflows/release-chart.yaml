@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - DK-2819
 
 jobs:
   release:
@@ -22,5 +23,7 @@ jobs:
         uses: helm/chart-releaser-action@v1.2.1
         with:
           charts_dir: ./chart
+          repo: helm-charts
+          owner: DoodleScheduling
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
