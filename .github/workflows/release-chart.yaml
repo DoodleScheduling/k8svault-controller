@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - DK-2819
 
 jobs:
   release:
