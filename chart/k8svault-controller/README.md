@@ -14,9 +14,9 @@ This command deploys the k8svault-controller with the default configuration. The
 
 ## Using the Chart
 
-The chart comes with a ServiceMonitor for use with the [Prometheus Operator](https://github.com/helm/charts/tree/master/stable/prometheus-operator).
-If you're not using the Prometheus Operator, you can disable the ServiceMonitor by setting `serviceMonitor.enabled` to `false` and instead
-populate the `podAnnotations` as below:
+The chart comes with a PodMonitor for use with the [Prometheus Operator](https://github.com/helm/charts/tree/master/stable/prometheus-operator).
+You need to enable it using `podMonitor.enabled: true`.
+If you're not using the Prometheus Operator, you can use `podAnnotations` as below:
 
 ```yaml
 podAnnotations:
