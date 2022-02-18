@@ -44,6 +44,14 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Generate images meta
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+          images: |
+            ghcr.io/doodlescheduling/${{ env.CONTROLLER }}
+          tags: |
+            type=raw,value=${{ steps.prep.outputs.VERSION }}
       - name: Publish multi-arch container image
         uses: docker/build-push-action@v2
         with:
@@ -52,15 +60,8 @@ jobs:
           context: .
           file: ./Dockerfile
           platforms: linux/amd64,linux/arm/v7,linux/arm64
-          tags: |
-            ghcr.io/doodlescheduling/${{ env.CONTROLLER }}:${{ steps.prep.outputs.VERSION }}
-          labels: |
-            org.opencontainers.image.title=${{ github.event.repository.name }}
-            org.opencontainers.image.description=${{ github.event.repository.description }}
-            org.opencontainers.image.url=${{ github.event.repository.html_url }}
-            org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.version=${{ steps.prep.outputs.VERSION }}
-            org.opencontainers.image.created=${{ steps.prep.outputs.BUILD_DATE }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
       - name: Check images
         run: |
           docker buildx imagetools inspect ghcr.io/doodlescheduling/${{ env.CONTROLLER }}:${{ steps.prep.outputs.VERSION }}
