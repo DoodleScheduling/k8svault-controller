@@ -106,7 +106,7 @@ Other `tlsConfig` include:
 *	ServerName
 *	Insecure
 
-An example for `VaultMirror:
+An example for `VaultMirror`:
 
 ```yaml
 apiVersion: vault.infra.doodle.com/v1beta1
