@@ -1,0 +1,24 @@
+# permissions for end users to edit postgresqls.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: vaultmirror-editor-role
+rules:
+- apiGroups:
+  - vault.infra.doodle.com
+  resources:
+  - vaultmirrors
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - vault.infra.doodle.com
+  resources:
+  - vaultmirrors/status
+  verbs:
+  - get

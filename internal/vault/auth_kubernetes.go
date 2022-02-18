@@ -1,4 +1,4 @@
-package kubernetes
+package vault
 
 import (
 	"context"
@@ -10,18 +10,21 @@ import (
 	"os"
 	"strings"
 
-	"github.com/DoodleScheduling/k8svault-controller/controllers/vault"
-	"github.com/go-logr/logr"
+	v1beta1 "github.com/DoodleScheduling/k8svault-controller/api/v1beta1"
 	"github.com/hashicorp/errwrap"
-	vaultapi "github.com/hashicorp/vault/api"
 )
+
+func init() {
+	registry.MustRegister("", authKubernetes)
+	registry.MustRegister("kubernetes", authKubernetes)
+}
 
 const (
 	serviceAccountFile = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+	DefaultAuthRole    = "k8svault-controller"
 )
 
 type kubernetesMethod struct {
-	logger    logr.Logger
 	mountPath string
 
 	role string
@@ -34,9 +37,36 @@ type kubernetesMethod struct {
 	jwtData io.ReadCloser
 }
 
+// Wrapper around vault kubernetes auth (taken from vault agent)
+func authKubernetes(config *v1beta1.VaultAuthSpec) (AuthMethod, error) {
+	var role string
+
+	switch {
+	case config.Role != "":
+		role = config.Role
+	case os.Getenv("VAULT_ROLE") != "":
+		role = os.Getenv("VAULT_ROLE")
+	default:
+		role = DefaultAuthRole
+	}
+
+	tokenPath := config.TokenPath
+	if tokenPath == "" {
+		tokenPath = os.Getenv("VAULT_TOKEN_PATH")
+	}
+
+	return NewKubernetesAuthMethod(&AuthConfig{
+		MountPath: "/auth/kubernetes",
+		Config: map[string]interface{}{
+			"role":       role,
+			"token_path": tokenPath,
+		},
+	})
+}
+
 // NewKubernetesAuthMethod reads the user configuration and returns a configured
 // AuthMethod
-func NewKubernetesAuthMethod(conf *vault.AuthConfig) (vault.AuthMethod, error) {
+func NewKubernetesAuthMethod(conf *AuthConfig) (AuthMethod, error) {
 	if conf == nil {
 		return nil, errors.New("empty config")
 	}
@@ -45,7 +75,6 @@ func NewKubernetesAuthMethod(conf *vault.AuthConfig) (vault.AuthMethod, error) {
 	}
 
 	k := &kubernetesMethod{
-		logger:    conf.Logger.WithValues("authMethod", "kubernetes"),
 		mountPath: conf.MountPath,
 	}
 
@@ -73,9 +102,7 @@ func NewKubernetesAuthMethod(conf *vault.AuthConfig) (vault.AuthMethod, error) {
 	return k, nil
 }
 
-func (k *kubernetesMethod) Authenticate(ctx context.Context, client *vaultapi.Client) (string, http.Header, map[string]interface{}, error) {
-	k.logger.Info("beginning authentication", "role", k.role, "tokenPath", k.tokenPath)
-
+func (k *kubernetesMethod) Authenticate(ctx context.Context) (string, http.Header, map[string]interface{}, error) {
 	jwtString, err := k.readJWT()
 	if err != nil {
 		return "", nil, nil, errwrap.Wrapf("error reading JWT with Kubernetes Auth: {{err}}", err)
@@ -87,17 +114,7 @@ func (k *kubernetesMethod) Authenticate(ctx context.Context, client *vaultapi.Cl
 	}, nil
 }
 
-func (k *kubernetesMethod) NewCreds() chan struct{} {
-	return nil
-}
-
-func (k *kubernetesMethod) CredSuccess() {
-}
-
-func (k *kubernetesMethod) Shutdown() {
-}
-
-// readJWT reads the JWT data for the Agent to submit to Vault. The default is
+// readJWT reads the JWT data for the Agent to submit to  The default is
 // to read the JWT from the default service account location, defined by the
 // constant serviceAccountFile. In normal use k.jwtData is nil at invocation and
 // the method falls back to reading the token path with os.Open, opening a file

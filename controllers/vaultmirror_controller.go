@@ -21,7 +21,6 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
-	"github.com/prometheus/common/log"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
@@ -31,7 +30,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	v1beta1 "github.com/DoodleScheduling/k8svault-controller/api/v1beta1"
+	"github.com/DoodleScheduling/k8svault-controller/internal/vault"
 )
+
+// +kubebuilder:rbac:groups=vault.infra.doodle.com,resources=vaultmirrors,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=vault.infra.doodle.com,resources=vaultmirrors/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 // VaultMirror reconciles a VaultMirror object
 type VaultMirrorReconciler struct {
@@ -52,9 +57,6 @@ func (r *VaultMirrorReconciler) SetupWithManager(mgr ctrl.Manager, opts VaultMir
 		WithOptions(controller.Options{MaxConcurrentReconciles: opts.MaxConcurrentReconciles}).
 		Complete(r)
 }
-
-// +kubebuilder:rbac:groups=vault.infra.doodle.com,resources=VaultMirrors,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=vault.infra.doodle.com,resources=VaultMirrors/status,verbs=get;update;patch
 
 // Reconcile VaultMirrors
 func (r *VaultMirrorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -77,10 +79,11 @@ func (r *VaultMirrorReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 
 	mirror, result, reconcileErr := r.reconcile(ctx, mirror, logger)
+	mirror.Status.ObservedGeneration = mirror.GetGeneration()
 
 	// Update status after reconciliation.
 	if err = r.patchStatus(ctx, &mirror); err != nil {
-		log.Error(err, "unable to update status after reconciliation")
+		logger.Error(err, "unable to update status after reconciliation")
 		return ctrl.Result{Requeue: true}, err
 	}
 
@@ -88,7 +91,7 @@ func (r *VaultMirrorReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 }
 
 func (r *VaultMirrorReconciler) reconcile(ctx context.Context, mirror v1beta1.VaultMirror, logger logr.Logger) (v1beta1.VaultMirror, ctrl.Result, error) {
-	srcHandler, err := NewHandler(mirror.Spec.Source, logger)
+	srcHandler, err := vault.NewHandler(mirror.Spec.Source, logger)
 
 	// Failed to setup vault client, requeue immediately
 	if err != nil {
@@ -97,7 +100,7 @@ func (r *VaultMirrorReconciler) reconcile(ctx context.Context, mirror v1beta1.Va
 		return v1beta1.VaultMirrorNotBound(mirror, v1beta1.VaultConnectionFailedReason, msg), ctrl.Result{Requeue: true}, err
 	}
 
-	dstHandler, err := NewHandler(mirror.Spec.Destination, logger)
+	dstHandler, err := vault.NewHandler(mirror.Spec.Destination, logger)
 
 	// Failed to setup vault client, requeue immediately
 	if err != nil {

@@ -27,11 +27,11 @@ type VaultBindingSpec struct {
 
 	// Define the secrets which must be mapped to vault
 	// +optional
-	Fields []FieldMapping `json:"fields"`
+	Fields []FieldMapping `json:"fields,omitempty"`
 
 	// By default existing matching fields in vault do not get overwritten
 	// +optional
-	ForceApply bool `json:"forceApply"`
+	ForceApply bool `json:"forceApply,omitempty"`
 
 	// The kubernetes secret the VaultBinding is referring to
 	// +required
@@ -55,6 +55,9 @@ type VaultBindingStatus struct {
 	// Conditions holds the conditions for the VaultBinding.
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	// ObservedGeneration is the last generation reconciled by the controller
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
 	// Vault Status (not implemented yet)
 	Vault VaultBindingVaultStatus `json:",inline"`
