@@ -4,4 +4,4 @@ resources:
 - deployment.yaml
 images:
 - name: ghcr.io/doodlescheduling/k8svault-controller
-  newTag: v0.0.1
+  newTag: v0.2.0
