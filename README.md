@@ -132,10 +132,15 @@ spec:
   forceApply: true
 ```
 
+## Installation
 
-## Helm chart
+### Helm
 
-Please see [chart/k8svault-controller](https://github.com/DoodleScheduling/k8svault-controller) for the helm chart docs.
+Please see [chart/k8svault-controller](https://github.com/DoodleScheduling/k8svault-controller/tree/master/chart/k8svault-controller) for the helm chart docs.
+
+### Manifests/kustomize
+
+Alternatively you may get the bundled manifests in each release to deploy it using kustomize or use them directly.
 
 ## Overwrite secrets in vault
 
@@ -146,7 +151,7 @@ Existing fields will only be overwritten if `spec.forceApply` is set.
 
 ## Limitations
 
-Currently there are some limitations which we may address soon. 
+Currently there are some limitations which we may address soon.
 
 * There is only support for kubernetes vault auth
 * There is only support for the secrets engine v1
