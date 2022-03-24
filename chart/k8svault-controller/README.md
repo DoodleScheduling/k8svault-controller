@@ -7,6 +7,7 @@ Installs the [k8svault-controller](https://github.com/DoodleScheduling/k8svault-
 To install the chart with the release name `k8svault-controller`:
 
 ```console
+helm repo add k8svault-controller https://doodlescheduling.github.io/k8svault-controller/
 helm upgrade --install k8svault-controller k8svault-controller/k8svault-controller
 ```
 

@@ -1,6 +1,6 @@
 # k8svault-controller
 
-[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/4787/badge)](https://bestpractices.coreinfrastructure.org/projects/4787)
+[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/5738/badge)](https://bestpractices.coreinfrastructure.org/projects/5738)
 [![e2e](https://github.com/DoodleScheduling/k8svault-controller/workflows/e2e/badge.svg)](https://github.com/DoodleScheduling/k8svault-controller/actions)
 [![report](https://goreportcard.com/badge/github.com/DoodleScheduling/k8svault-controller)](https://goreportcard.com/report/github.com/DoodleScheduling/k8svault-controller)
 [![license](https://img.shields.io/github/license/DoodleScheduling/k8svault-controller.svg)](https://github.com/DoodleScheduling/k8svault-controller/blob/master/LICENSE)
@@ -132,10 +132,15 @@ spec:
   forceApply: true
 ```
 
+## Installation
 
-## Helm chart
+### Helm
 
-Please see [chart/k8svault-controller](https://github.com/DoodleScheduling/k8svault-controller) for the helm chart docs.
+Please see [chart/k8svault-controller](https://github.com/DoodleScheduling/k8svault-controller/tree/master/chart/k8svault-controller) for the helm chart docs.
+
+### Manifests/kustomize
+
+Alternatively you may get the bundled manifests in each release to deploy it using kustomize or use them directly.
 
 ## Overwrite secrets in vault
 
@@ -146,7 +151,7 @@ Existing fields will only be overwritten if `spec.forceApply` is set.
 
 ## Limitations
 
-Currently there are some limitations which we may address soon. 
+Currently there are some limitations which we may address soon.
 
 * There is only support for kubernetes vault auth
 * There is only support for the secrets engine v1

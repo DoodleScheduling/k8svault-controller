@@ -1,7 +1,7 @@
 # Changelog
 
-## 0.1.0
+## 0.2.0
 
-**Release date:** 2022-02-18
+**Release date:** 2022-03-18
 
 Initial oss release
