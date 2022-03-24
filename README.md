@@ -1,6 +1,6 @@
 # k8svault-controller
 
-[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/4787/badge)](https://bestpractices.coreinfrastructure.org/projects/4787)
+[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/5738/badge)](https://bestpractices.coreinfrastructure.org/projects/5738)
 [![e2e](https://github.com/DoodleScheduling/k8svault-controller/workflows/e2e/badge.svg)](https://github.com/DoodleScheduling/k8svault-controller/actions)
 [![report](https://goreportcard.com/badge/github.com/DoodleScheduling/k8svault-controller)](https://goreportcard.com/report/github.com/DoodleScheduling/k8svault-controller)
 [![license](https://img.shields.io/github/license/DoodleScheduling/k8svault-controller.svg)](https://github.com/DoodleScheduling/k8svault-controller/blob/master/LICENSE)
