@@ -3,5 +3,5 @@ namespace: k8svault-system
 bases:
 - ../base/crd
 - ../rbac
-- ../manager
+- ../base/manager
 - namespace.yaml
