@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"time"
 
@@ -56,7 +55,7 @@ var _ = Describe("VaultMirrorReconciler", func() {
 			err = k8sClient.Create(context.Background(), namespace)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test namespace")
 
-			file, err := ioutil.TempFile(os.TempDir(), "jwt")
+			file, err := os.CreateTemp(os.TempDir(), "jwt")
 			Expect(err).NotTo(HaveOccurred(), "failed to create temp jwt file")
 			defer os.Remove(file.Name())
 		})
