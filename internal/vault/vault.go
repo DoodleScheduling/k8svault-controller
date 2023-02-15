@@ -34,7 +34,7 @@ func NewHandler(config *v1beta1.VaultSpec, logger logr.Logger) (*VaultHandler, e
 	}
 
 	// Overwrite TLS setttings with individual settings
-	cfg.ConfigureTLS(convertTLSSpec(config.TLSConfig))
+	_ = cfg.ConfigureTLS(convertTLSSpec(config.TLSConfig))
 
 	client, err := vaultapi.NewClient(cfg)
 	if err != nil {
@@ -85,7 +85,6 @@ type Mapper interface {
 type VaultHandler struct {
 	c      ReadWriter
 	cfg    *vaultapi.Config
-	auth   *AuthHandler
 	logger logr.Logger
 }
 
@@ -102,7 +101,7 @@ func (h *VaultHandler) Write(writer Mapper, srcData map[string]interface{}) (boo
 	// If no field mapping is configured all fields get mapped with their source field name
 	mapping := writer.GetFieldMapping()
 	if len(mapping) == 0 {
-		for k, _ := range srcData {
+		for k := range srcData {
 			mapping = append(mapping, v1beta1.FieldMapping{
 				Name: k,
 			})
@@ -142,7 +141,7 @@ func (h *VaultHandler) Write(writer Mapper, srcData map[string]interface{}) (boo
 		}
 	}
 
-	if writeBack == true {
+	if writeBack {
 		// Finally write the secret back
 		_, err = h.c.Write(writer.GetPath(), data)
 		if err != nil {

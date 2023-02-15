@@ -3,7 +3,6 @@ package vault
 import (
 	"context"
 	"errors"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -91,10 +90,10 @@ func TestNewKubernetesAuthMethod(t *testing.T) {
 func TestAuthKubernetes(t *testing.T) {
 	g := NewWithT(t)
 
-	file, err := ioutil.TempFile(os.TempDir(), "jwt")
+	file, err := os.CreateTemp(os.TempDir(), "jwt")
 	g.Expect(err).NotTo(HaveOccurred(), "failed creating test jwt file")
 	defer os.Remove(file.Name())
-	file.Write([]byte("strawberry"))
+	_, _ = file.Write([]byte("strawberry"))
 
 	handler, err := NewKubernetesAuthMethod(&AuthConfig{
 		MountPath: "/berries",
