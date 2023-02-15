@@ -1,10 +1,10 @@
 # k8svault-controller
 
-[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/5738/badge)](https://bestpractices.coreinfrastructure.org/projects/5738)
-[![e2e](https://github.com/DoodleScheduling/k8svault-controller/workflows/e2e/badge.svg)](https://github.com/DoodleScheduling/k8svault-controller/actions)
-[![report](https://goreportcard.com/badge/github.com/DoodleScheduling/k8svault-controller)](https://goreportcard.com/report/github.com/DoodleScheduling/k8svault-controller)
-[![license](https://img.shields.io/github/license/DoodleScheduling/k8svault-controller.svg)](https://github.com/DoodleScheduling/k8svault-controller/blob/master/LICENSE)
 [![release](https://img.shields.io/github/release/DoodleScheduling/k8svault-controller/all.svg)](https://github.com/DoodleScheduling/k8svault-controller/releases)
+[![release](https://github.com/doodlescheduling/k8svault-controller/actions/workflows/release.yaml/badge.svg)](https://github.com/doodlescheduling/k8svault-controller/actions/workflows/release.yaml)
+[![report](https://goreportcard.com/badge/github.com/DoodleScheduling/k8svault-controller)](https://goreportcard.com/report/github.com/DoodleScheduling/k8svault-controller)
+[![Coverage Status](https://coveralls.io/repos/github/DoodleScheduling/k8svault-controller/badge.svg?branch=master)](https://coveralls.io/github/DoodleScheduling/k8svault-controller?branch=master)
+[![license](https://img.shields.io/github/license/DoodleScheduling/k8svault-controller.svg)](https://github.com/DoodleScheduling/k8svault-controller/blob/master/LICENSE)
 
 A controller for kubernetes for automating secret provisioning to hashicorp vault.
 You may either provision secrets from kubernetes core secrets or from other vaults.
@@ -64,7 +64,7 @@ spec:
     path: "/secret/env/myapp"
   destination:
     address: "https://source-vault:8200"
-    path: "/secret/env/myapp"    
+    path: "/secret/env/myapp"
   forceApply: true
   interval: "0"
   fields:
