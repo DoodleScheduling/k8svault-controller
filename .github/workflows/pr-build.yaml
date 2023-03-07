@@ -105,3 +105,4 @@ jobs:
           kubectl -n k8svault-system logs deploy/k8svault-controller
           kubectl -n vault get all
           kubectl -n vault exec -i sts/vault vault -- vault list /secret/
+          kubectl get serviceaccount vault -n vault -o go-template='{{ (index .secrets 0).name }}'
