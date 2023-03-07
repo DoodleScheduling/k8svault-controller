@@ -76,7 +76,7 @@ jobs:
           kubectl -n vault exec -i sts/vault vault -- vault secrets enable -version=1 -path=/secret kv
           echo "enable vault kubernetes authentication"
           kubectl -n vault exec -i sts/vault vault -- vault auth enable kubernetes
-          echo 'path "secret/*" { capabilities = ["update","read","create"]  }' | kubectl exec -ti -n vault vault-0 -- vault policy write k8svault-controller -
+          echo 'path "secret/*" { capabilities = ["update","read","create"]  }' | kubectl exec -i -n vault vault-0 -- vault policy write k8svault-controller -
           kubectl -n vault exec -i sts/vault vault -- vault write auth/kubernetes/role/k8svault-controller bound_service_account_names=default bound_service_account_namespaces=k8svault-system policies=k8svault-controller
           k8s_host="$(kubectl exec vault-0 -n vault -- printenv | grep KUBERNETES_PORT_443_TCP_ADDR | cut -f 2- -d "=" | tr -d " ")"
           k8s_port="443"
