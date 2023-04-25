@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math/rand"
 	"path/filepath"
+	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -47,6 +48,13 @@ var k8sClient client.Client
 var testEnv *envtest.Environment
 var ctx context.Context
 var cancel context.CancelFunc
+
+func TestAPIs(t *testing.T) {
+	RegisterFailHandler(Fail)
+
+	RunSpecs(t,
+		"Controller Suite")
+}
 
 var _ = BeforeSuite(func(done Done) {
 	logf.SetLogger(
