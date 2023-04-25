@@ -61,7 +61,7 @@ vet: ## Run go vet against code.
 
 .PHONY: lint
 lint: golangci-lint ## Run golangci-lint against code
-	$(GOLANGCI_LINT) run --timeout=2m ./...
+	GOGC=1 $(GOLANGCI_LINT) run --timeout=2m ./...
 
 .PHONY: test
 test: manifests generate fmt vet tidy envtest ## Run tests.
