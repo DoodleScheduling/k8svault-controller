@@ -80,6 +80,7 @@ jobs:
           kubectl -n vault exec -i sts/vault vault -- vault write auth/kubernetes/role/k8svault-controller bound_service_account_names=default bound_service_account_namespaces=k8svault-system policies=k8svault-controller
           k8s_host="$(kubectl exec vault-0 -n vault -- printenv | grep KUBERNETES_PORT_443_TCP_ADDR | cut -f 2- -d "=" | tr -d " ")"
           k8s_port="443"
+          kubectl get serviceaccount vault -n vault -o yaml
           k8s_cacert="$(kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}' | base64 --decode)"
           secret_name="$(kubectl get serviceaccount vault -n vault -o go-template='{{ (index .secrets 0).name }}')"
           tr_account_token="$(kubectl get secret ${secret_name} -n vault -o go-template='{{ .data.token }}' | base64 --decode)"
