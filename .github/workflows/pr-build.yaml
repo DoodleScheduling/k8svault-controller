@@ -47,51 +47,14 @@ jobs:
           fi
       - name: Build container image
         run: |
-          make docker-build IMG=test/k8svault-controller:latest BUILD_PLATFORMS=linux/amd64 \
-            BUILD_ARGS="--cache-from=type=local,src=/tmp/.buildx-cache \
-            --cache-to=type=local,dest=/tmp/.buildx-cache-new,mode=max"
+          make docker-build
       - name: Setup Kubernetes
         uses: engineerd/setup-kind@aa272fe2a7309878ffc2a81c56cfe3ef108ae7d0 #v0.5.0
         with:
           version: v0.17.0
-      - name: Load test image
-        run: kind load docker-image test/k8svault-controller:latest
-      - name: Deploy controller
-        run: make deploy IMG=test/k8svault-controller:latest
-      - name: Setup Vault
-        env:
-          VAULT_VER: ${{ '0.18.0' }}
+      - name: e2e tests
         run: |
-          kubectl create ns vault
-          helm repo add hashicorp https://helm.releases.hashicorp.com
-          helm upgrade --wait -i vault hashicorp/vault \
-          --version $VAULT_VER \
-          --namespace vault \
-          --set server.dev.enabled=true \
-          --set injector.enabled=false
-          echo "enable vault secret engine kv v1"
-          kubectl -n vault wait pods/vault-0 --for=condition=Ready --timeout=1m
-          kubectl -n vault exec -i sts/vault vault -- vault secrets disable kv
-          kubectl -n vault exec -i sts/vault vault -- vault secrets disable secret
-          kubectl -n vault exec -i sts/vault vault -- vault secrets enable -version=1 -path=/secret kv
-          echo "enable vault kubernetes authentication"
-          kubectl -n vault exec -i sts/vault vault -- vault auth enable kubernetes
-          echo 'path "secret/*" { capabilities = ["update","read","create"]  }' | kubectl exec -i -n vault vault-0 -- vault policy write k8svault-controller -
-          kubectl -n vault exec -i sts/vault vault -- vault write auth/kubernetes/role/k8svault-controller bound_service_account_names=default bound_service_account_namespaces=k8svault-system policies=k8svault-controller
-          k8s_host="$(kubectl exec vault-0 -n vault -- printenv | grep KUBERNETES_PORT_443_TCP_ADDR | cut -f 2- -d "=" | tr -d " ")"
-          k8s_port="443"
-          kubectl get serviceaccount vault -n vault -o yaml
-          k8s_cacert="$(kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}' | base64 --decode)"
-          secret_name="$(kubectl get serviceaccount vault -n vault -o go-template='{{ (index .secrets 0).name }}')"
-          tr_account_token="$(kubectl get secret ${secret_name} -n vault -o go-template='{{ .data.token }}' | base64 --decode)"
-          kubectl -n vault exec -i sts/vault vault -- vault write auth/kubernetes/config token_reviewer_jwt="${tr_account_token}" kubernetes_host="https://${k8s_host}:${k8s_port}" kubernetes_ca_cert="${k8s_cacert}"
-      - name: Run vault tests
-        run: |
-          kubectl -n k8svault-system apply -f ./config/testdata
-          kubectl -n k8svault-system wait vaultbinding/test-secret --for=condition=Bound --timeout=1m
-          kubectl -n vault exec -i sts/vault vault -- vault read /secret/example
-          kubectl -n k8svault-system wait vaultmirror/test-secret --for=condition=Bound --timeout=1m
-          kubectl -n vault exec -i sts/vault vault -- vault read /secret/example-copy
+          make kind-test
       - name: Logs
         run: |
           kubectl -n k8svault-system logs deploy/k8svault-controller

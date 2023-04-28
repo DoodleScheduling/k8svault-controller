@@ -1,10 +1,25 @@
 domain: doodle.com
-repo: github.com/DoodleScheduling/k8svault-controller
+layout:
+- go.kubebuilder.io/v3
+projectName: k8svault-controller
+repo: github.com/doodlescheduling/k8svault-controller
 resources:
-- group: vault.infra.doodle.com
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: doodle.com
+  group: vault.infra.doodle.com
   kind: VaultBinding
+  path: github.com/doodlescheduling/k8svault-controller/api/v1beta1
   version: v1beta1
-- group: vault.infra.doodle.com
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: doodle.com
+  group: vault.infra.doodle.com
   kind: VaultMirror
+  path: github.com/doodlescheduling/k8svault-controller/api/v1beta1
   version: v1beta1
-version: "2"
+version: "3"

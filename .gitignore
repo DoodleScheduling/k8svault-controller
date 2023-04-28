@@ -6,6 +6,9 @@
 *.so
 *.dylib
 bin
+manager
+config/**/charts
+.vscode
 
 # Test binary, build with `go test -c`
 *.test

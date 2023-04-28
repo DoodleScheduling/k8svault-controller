@@ -3,7 +3,7 @@ kind: VaultBinding
 metadata:
   name: test-secret
 spec:
-  address: http://vault.vault:8200
+  address: http://vault.k8svault-system:8200
   fields:
   - name: password
     rename: PASSWORD
