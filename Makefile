@@ -61,7 +61,7 @@ vet: ## Run go vet against code.
 
 .PHONY: lint
 lint: golangci-lint ## Run golangci-lint against code
-	GOGC=1 $(GOLANGCI_LINT) run --timeout=2m ./...
+	GOGC=1 $(GOLANGCI_LINT) run --timeout=4m ./...
 
 .PHONY: test
 test: manifests generate fmt vet tidy envtest ## Run tests.
@@ -125,6 +125,7 @@ CLUSTER=kind
 kind-test: docker-build ## Deploy including test
 	kustomize build config/base/crd | kubectl --context kind-${CLUSTER} apply -f -	
 	kind load docker-image ${IMG} --name ${CLUSTER}
+	kubectl -n k8svault-system delete pods -l app=k8svault-controller
 	kustomize build config/tests/cases/${TEST_PROFILE} --enable-helm | kubectl --context kind-${CLUSTER} apply -f -
 	scripts/e2e.sh
 
