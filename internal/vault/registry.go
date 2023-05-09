@@ -19,7 +19,7 @@ type AuthMethodRegistry struct {
 }
 
 func (r *AuthMethodRegistry) Register(name string, init NewAuthMethod) error {
-	for k, _ := range r.methods {
+	for k := range r.methods {
 		if k == name {
 			return fmt.Errorf("auth method %s is already registered", name)
 		}

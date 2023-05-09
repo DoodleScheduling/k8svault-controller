@@ -5,13 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
 
 	v1beta1 "github.com/DoodleScheduling/k8svault-controller/api/v1beta1"
-	"github.com/hashicorp/errwrap"
 )
 
 func init() {
@@ -105,7 +103,7 @@ func NewKubernetesAuthMethod(conf *AuthConfig) (AuthMethod, error) {
 func (k *kubernetesMethod) Authenticate(ctx context.Context) (string, http.Header, map[string]interface{}, error) {
 	jwtString, err := k.readJWT()
 	if err != nil {
-		return "", nil, nil, errwrap.Wrapf("error reading JWT with Kubernetes Auth: {{err}}", err)
+		return "", nil, nil, fmt.Errorf("error reading JWT with Kubernetes Auth: %q", err)
 	}
 
 	return fmt.Sprintf("%s/login", k.mountPath), nil, map[string]interface{}{
@@ -138,7 +136,7 @@ func (k *kubernetesMethod) readJWT() (string, error) {
 	}
 	defer data.Close()
 
-	contentBytes, err := ioutil.ReadAll(data)
+	contentBytes, err := io.ReadAll(data)
 	if err != nil {
 		return "", err
 	}

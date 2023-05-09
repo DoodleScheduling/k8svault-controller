@@ -4,8 +4,8 @@ metadata:
   name: test-secret
 spec:
   destination:
-    address: http://vault.vault:8200
+    address: http://vault.k8svault-system:8200
     path: secret/example-copy
   source:
-    address: http://vault.vault:8200
+    address: http://vault.k8svault-system:8200
     path: secret/example
