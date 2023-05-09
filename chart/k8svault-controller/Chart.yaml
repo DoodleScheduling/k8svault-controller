@@ -1,5 +1,5 @@
 apiVersion: v2
-appVersion: v0.2.0
+appVersion: v0.3.0
 description: A kubernetes controller to sync kubernetes secrets to hashicorp vault
 home: https://github.com/DoodleScheduling/k8svault-controller
 maintainers:
@@ -12,4 +12,4 @@ keywords:
 name: k8svault-controller
 sources:
 - https://github.com/DoodleScheduling/k8svault-controller
-version: 0.2.0
+version: 0.2.1
