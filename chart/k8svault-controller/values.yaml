@@ -84,6 +84,8 @@ securityContext:
   capabilities:
     drop: ["all"]
   readOnlyRootFilesystem: true
+
+podSecurityContext:
   runAsGroup: 10000
   runAsNonRoot: true
   runAsUser: 10000
@@ -131,5 +133,13 @@ prometheusRule:
 
 kubeRBACProxy:
   enabled: true
+
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["all"]
+    readOnlyRootFilesystem: true
+
+  resources: {}
 
 tolerations: []
